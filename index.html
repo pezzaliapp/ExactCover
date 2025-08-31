@@ -3,21 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ExactCover — Pentomino PWA</title>
+  <title>Pentomino Touch</title>
   <meta name="theme-color" content="#0f172a" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
+  <link rel="icon" type="image/png" href="icons/favicon.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="appbar">
     <div class="brand">
-      <img src="icons/icon-192.png" alt="ExactCover icon" />
-      <h1>ExactCover — Pentomino</h1>
-    </div>
-    <div class="actions">
-      <button id="installBtn" class="ghost" hidden>Installa</button>
+      <img src="icons/icon-192.png" alt="Icona" />
+      <h1>Pentomino Touch</h1>
     </div>
   </header>
 
@@ -30,83 +27,49 @@
           <option value="5x12">5 × 12</option>
           <option value="4x15">4 × 15</option>
           <option value="3x20">3 × 20</option>
-          <option value="8x8h">8 × 8 con 4 fori</option>
+          <option value="8x8h">8 × 8 con fori</option>
           <option value="custom">Custom…</option>
         </select>
-        <label for="w">Larghezza</label>
         <input id="w" type="number" min="3" max="20" value="10" />
-        <label for="h">Altezza</label>
         <input id="h" type="number" min="3" max="20" value="6" />
         <button id="newBtn">Nuova Griglia</button>
         <button id="holesBtn" class="ghost">Modifica Fori</button>
         <button id="resetHolesBtn" class="ghost">Svuota Fori</button>
       </div>
 
-      <div class="controls">
-        <button id="checkBtn">Controlla</button>
-        <button id="suggestBtn">Suggerisci</button>
-        <button id="solveOneBtn">Risolvi (1)</button>
-        <button id="findAllBtn" class="ghost">Trova tutte (max 50)</button>
-        <button id="prevBtn" class="ghost" disabled>◀︎</button>
-        <button id="nextBtn" class="ghost" disabled>▶︎</button>
-        <button id="applyBtn" class="ghost" disabled>Applica</button>
-      </div>
-
       <p id="status" class="status">Pronto.</p>
-      <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
-      <div class="legend">
-        <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
-        <span class="legend-item"><span class="cell demo piece"></span> Pezzo</span>
+
+      <div class="board-wrap">
+        <div id="board" class="board"></div>
       </div>
 
       <div class="manual panel2">
-        <h3>Modalità Manuale — Drag & Drop</h3>
+        <h3>Trascina i pezzi</h3>
         <div class="controls">
           <label for="pieceSelect">Pezzo:</label>
           <select id="pieceSelect"></select>
-          <button id="rotBtn" class="ghost" title="Ruota">Ruota ↻</button>
-          <button id="flipBtn" class="ghost" title="Specchia">Specchia ⇋</button>
-          <button id="removeBtn" class="ghost">Rimuovi pezzo</button>
-          <button id="clearPlacedBtn" class="ghost">Svuota posizionati</button>
+          <button id="rotBtn" class="ghost">Ruota ↻</button>
+          <button id="flipBtn" class="ghost">Specchia ⇋</button>
+          <button id="removeBtn" class="ghost">Rimuovi</button>
+          <button id="clearPlacedBtn" class="ghost">Svuota tutti</button>
         </div>
         <div id="palette" class="palette"></div>
-        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina dalla griglia per spostarlo. Clic su una cella coperta per rimuoverlo.</small>
       </div>
     </section>
 
     <section class="side">
       <div class="stats">
-        <p><strong>Dimensioni:</strong> <span id="statSize">6×10</span></p>
-        <p><strong>Celle valide:</strong> <span id="statCells">60</span></p>
-        <p><strong>Pezzi attivi:</strong> <span id="statPieces">12</span> / 12</p>
-        <p><strong>Copertura:</strong> <span id="statCover">0/60</span></p>
-        <p><strong>Soluzioni:</strong> <span id="statSolutions">0</span> <small id="statCapped" class="muted"></small></p>
+        <p><strong>Griglia:</strong> <span id="statSize">6×10</span></p>
+        <p><strong>Celle:</strong> <span id="statCells">60</span></p>
+        <p><strong>Coperte:</strong> <span id="statCover">0/60</span></p>
       </div>
-
-      <details open>
-        <summary>Pezzi attivi</summary>
-        <div id="piecesPanel" class="pieces"></div>
-        <small class="muted">Area richiesta = 5 × (#pezzi attivi). Le celle valide devono coincidere.</small>
-      </details>
-
-      <details>
-        <summary>Info</summary>
-        <p>Obiettivo: coprire tutte le celle valide usando ciascun pentomino una sola volta, senza sovrapposizioni. Solver: <em>Dancing Links</em> (DLX).</p>
-        <p>MIT © 2025 Alessandro Pezzali — PezzaliAPP</p>
-      </details>
     </section>
   </main>
-
-  <footer class="footer">
-    <p>💚 Open Source — PezzaliAPP.com</p>
-  </footer>
 
   <script src="script.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js');
-      });
+      navigator.serviceWorker.register('./service-worker.js');
     }
   </script>
 </body>
