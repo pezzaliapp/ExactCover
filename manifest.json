@@ -1,7 +1,7 @@
 {
-  "name": "ExactCover — Pentomino PWA",
-  "short_name": "ExactCover",
-  "start_url": "./index.html",
+  "name": "Pentomino Exact Cover",
+  "short_name": "Pentomino",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
