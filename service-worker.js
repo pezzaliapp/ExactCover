@@ -1,4 +1,4 @@
-const CACHE_NAME = 'exactcover-v1';
+const CACHE_NAME = 'exactcover-v2';
 const ASSETS = [
   './',
   './index.html',

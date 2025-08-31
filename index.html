@@ -45,6 +45,7 @@
 
       <div class="controls">
         <button id="checkBtn">Controlla</button>
+        <button id="manualBtn" class="ghost">Manuale: OFF</button>
         <button id="shuffleBtn" class="ghost">Mescola</button>
         <button id="hintBtn">Suggerisci</button>
         <button id="solveOneBtn">Risolvi (1 soluzione)</button>
@@ -64,6 +65,16 @@
         <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
         <span class="legend-item"><span class="cell demo piece"></span> Pezzo</span>
       </div>
+    <div id="manualPanel" class="manual hidden">
+      <div class="controls">
+        <span class="muted">Trascina un pezzo sulla griglia</span>
+        <button id="rotBtn" class="ghost" title="Ruota (R)">Ruota ↻</button>
+        <button id="flipBtn" class="ghost" title="Specchia (F)">Specchia ⇋</button>
+        <button id="clearPlacedBtn" class="ghost">Svuota posizionati</button>
+      </div>
+      <div id="palette" class="palette"></div>
+      <small class="muted">Suggerimento: clic su un pezzo già posizionato per rimuoverlo.</small>
+    </div>
     </section>
 
     <section class="side">

@@ -65,6 +65,172 @@
   const piecesPanel = document.getElementById('piecesPanel');
 
   const githubLink = document.getElementById('githubLink');
+
+  // ---- Manual placement mode (Drag & Drop) ----
+  const manualBtn = document.getElementById('manualBtn');
+  const manualPanel = document.getElementById('manualPanel');
+  const palette = document.getElementById('palette');
+  const rotBtn = document.getElementById('rotBtn');
+  const flipBtn = document.getElementById('flipBtn');
+  const clearPlacedBtn = document.getElementById('clearPlacedBtn');
+
+  let manualMode = false;
+  let placed = new Map(); // letter -> array of cell idx
+  let occupied = new Set(); // cell idx
+  const orientState = {}; // letter -> current oriented shape
+
+  manualBtn?.addEventListener('click', ()=>{
+    manualMode = !manualMode;
+    manualBtn.textContent = manualMode ? 'Manuale: ON' : 'Manuale: OFF';
+    manualPanel.classList.toggle('hidden', !manualMode);
+    // disable solver buttons in manual mode (to evitare confusione)
+    solveOneBtn.disabled = findAllBtn.disabled = hintBtn.disabled = manualMode;
+    if (!manualMode){ // clearing previews only
+      renderBoard(currentColorMap());
+      setStatus('Modalità solver attiva.');
+    } else {
+      setStatus('Modalità manuale: trascina i pezzi sulla griglia. Clic su un pezzo per rimuoverlo.');
+    }
+  });
+
+  function currentColorMap(){
+    const cmap = new Map();
+    for (const [L, cells] of placed.entries()){
+      cells.forEach(k => cmap.set(k, L));
+    }
+    return cmap;
+  }
+
+  function pieceColorLetter(L){ return pieceColor(L); }
+
+  function pieceCellsOriented(letter){
+    const base = PENTOMINOES[letter];
+    if (!orientState[letter]) orientState[letter] = normalize(base);
+    return orientState[letter];
+  }
+
+  // rotate/reflect utilities reuse existing rotate/reflect/normalize
+  rotBtn?.addEventListener('click', ()=>{
+    if (!manualMode) return;
+    // rotate all pieces' preview by 90 (affects next drags)
+    for (const L of PIECE_ORDER){
+      const cur = pieceCellsOriented(L);
+      orientState[L] = normalize(rotate(cur));
+    }
+    renderPalette();
+  });
+  flipBtn?.addEventListener('click', ()=>{
+    if (!manualMode) return;
+    for (const L of PIECE_ORDER){
+      const cur = pieceCellsOriented(L);
+      orientState[L] = normalize(reflect(cur));
+    }
+    renderPalette();
+  });
+  clearPlacedBtn?.addEventListener('click', ()=>{
+    placed.clear(); occupied.clear();
+    renderBoard();
+    setStatus('Posizionamenti manuali rimossi.');
+  });
+
+  function renderPalette(){
+    if (!palette) return;
+    palette.innerHTML = '';
+    for (const L of PIECE_ORDER){
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.draggable = true;
+      tile.setAttribute('data-piece', L);
+
+      const mini = document.createElement('div');
+      mini.className = 'mini';
+      // 5x5 miniature grid
+      const shape = pieceCellsOriented(L);
+      const on = new Set(shape.map(([r,c])=> `${r},${c}`));
+      for (let r=0;r<5;r++){
+        for (let c=0;c<5;c++){
+          const mcell = document.createElement('div');
+          mcell.className = 'cell' + (on.has(`${r},${c}`)?' on':'');
+          mini.appendChild(mcell);
+        }
+      }
+      const label = document.createElement('div');
+      label.textContent = L;
+      label.style.marginTop = '.25rem';
+      label.style.fontWeight = '700';
+
+      tile.appendChild(mini);
+      tile.appendChild(label);
+
+      tile.addEventListener('dragstart', (e)=>{
+        e.dataTransfer.setData('text/plain', L);
+      });
+      palette.appendChild(tile);
+    }
+  }
+
+  // Allow drop on board
+  boardEl.addEventListener('dragover', (e)=>{
+    if (!manualMode) return;
+    e.preventDefault();
+  });
+  boardEl.addEventListener('drop', (e)=>{
+    if (!manualMode) return;
+    e.preventDefault();
+    const L = e.dataTransfer.getData('text/plain');
+    if (!L) return;
+    // find target cell coordinates from element under cursor
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const cellEl = target?.closest('.cell');
+    if (!cellEl || !boardEl.contains(cellEl)) return;
+    const children = Array.from(boardEl.children);
+    const idxCell = children.indexOf(cellEl);
+    const r0 = Math.floor(idxCell / N);
+    const c0 = idxCell % N;
+    // try place with current orientation anchored at (r0,c0)
+    const shape = pieceCellsOriented(L);
+    const cells = [];
+    for (const [dr,dc] of shape){
+      const rr = r0 + dr, cc = c0 + dc;
+      if (rr<0||rr>=H||cc<0||cc>=W){ setStatus('⛔ Fuori griglia.'); return; }
+      const k = idx(rr,cc);
+      if (holes.has(k)){ setStatus('⛔ Copre un foro.'); return; }
+      if (occupied.has(k)){ setStatus('⛔ Sovrapposizione con altro pezzo.'); return; }
+      cells.push(k);
+    }
+    // remove previous placement of L, if any
+    if (placed.has(L)){
+      placed.get(L).forEach(k => occupied.delete(k));
+    }
+    placed.set(L, cells);
+    cells.forEach(k => occupied.add(k));
+    renderBoard(currentColorMap());
+    setStatus(`Pezzo ${L} posizionato.`);
+  });
+
+  // Click on colored cell removes that piece
+  boardEl.addEventListener('click', (e)=>{
+    if (!manualMode) return;
+    const target = e.target.closest('.cell');
+    if (!target) return;
+    const children = Array.from(boardEl.children);
+    const idxCell = children.indexOf(target);
+    const r = Math.floor(idxCell / N);
+    const c = idxCell % N;
+    const k = idx(r,c);
+    // find which letter owns it
+    let owner = null;
+    for (const [L, cells] of placed.entries()){
+      if (cells.includes(k)){ owner = L; break; }
+    }
+    if (owner){
+      placed.get(owner).forEach(k2 => occupied.delete(k2));
+      placed.delete(owner);
+      renderBoard(currentColorMap());
+      setStatus(`Rimosso pezzo ${owner}.`);
+    }
+  });
+
   githubLink.href = "https://github.com/pezzaliapp/ExactCover";
 
   // --- State ---
@@ -522,9 +688,10 @@
   updateStats();
   renderBoard();
   setStatus('Pronto.');
-})();
 
-  // Shuffle button: new random seed and clear cached solutions
+
+// --- (moved inside IIFE) Extra handlers ---
+// Shuffle button: new random seed and clear cached solutions
   shuffleBtn?.addEventListener('click', ()=>{
     seedRand(Math.floor(Math.random()*1e9));
     solutions=[]; solIdx=-1; capped=false;
@@ -536,3 +703,4 @@
   stopBtn?.addEventListener('click', ()=>{
     if (typeof requestStop === 'function') requestStop();
   });
+})();
