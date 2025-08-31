@@ -6,7 +6,7 @@
   <title>ExactCover — Pentomino PWA</title>
   <meta name="theme-color" content="#0f172a" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
+  <link rel="icon" type="image/png" href="icons/favicon.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -50,13 +50,17 @@
         <button id="prevBtn" class="ghost" disabled>◀︎</button>
         <button id="nextBtn" class="ghost" disabled>▶︎</button>
         <button id="applyBtn" class="ghost" disabled>Applica</button>
+        <button id="shuffleBtn" class="ghost">Mescola</button>
       </div>
 
       <p id="status" class="status">Pronto.</p>
       <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
+      <div id="gallery" class="gallery"></div>
       <div class="legend">
         <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
         <span class="legend-item"><span class="cell demo piece"></span> Pezzo</span>
+        <span class="legend-item"><span class="cell demo preview"></span> Anteprima valida</span>
+        <span class="legend-item"><span class="cell demo preview bad"></span> Anteprima non valida</span>
       </div>
 
       <div class="manual panel2">
@@ -70,7 +74,7 @@
           <button id="clearPlacedBtn" class="ghost">Svuota posizionati</button>
         </div>
         <div id="palette" class="palette"></div>
-        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina dalla griglia per spostarlo. Clic su una cella coperta per rimuoverlo.</small>
+        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina dalla griglia per spostarlo. Premi <b>R</b> per ruotare e <b>F</b> per specchiare durante il drag.</small>
       </div>
     </section>
 
@@ -103,11 +107,11 @@
 
   <script src="script.js" defer></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+    if ('serviceWorker' in navigator) {{
+      window.addEventListener('load', () => {{
         navigator.serviceWorker.register('./service-worker.js');
-      });
-    }
+      }});
+    }}
   </script>
 </body>
 </html>
