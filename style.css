@@ -1,30 +1,108 @@
-/* Reset/struttura base: adatta la tua esistente se serve */
-:root{color-scheme:dark}
-*{box-sizing:border-box}
-html,body{margin:0;background:#0b1220;color:#e7e7ef;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-
-/* Board */
-.board{
-  --w:10; --h:6;
-  display:grid;
-  grid-template-columns:repeat(var(--w),1fr);
-  gap:2px;
-  width:100%;
-  max-width:calc(100vw - 1rem);
-  aspect-ratio: var(--w) / var(--h);
-  background:#0f1a33;
-  padding:2px;
-  border-radius:12px;
-  border:1px solid #1a2a4d;
-  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
+/* ========= RESET & TEMA ========= */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: #0b1220;
+  color: #e7e7ef;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
-.cell{position:relative;background:#0e172b;border-radius:4px}
-.cell.dark{background:#0c1425}
-.cell.hole{background:#1b0f0f}
+
+/* ========= APPBAR / TITOLI ========= */
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #0b1220;
+  border-bottom: 1px solid #122142;
+}
+.appbar .brand { padding: .75rem 1rem; }
+.appbar h1 {
+  margin: 0;
+  font-size: clamp(18px, 2.2vw, 28px);
+  letter-spacing: .2px;
+}
+
+/* ========= LAYOUT GENERALE =========
+   Due righe: controlli (sticky) + campo di gioco (board + palette) */
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* Controlli sticky in alto */
+.controls.panel {
+  position: sticky;
+  top: calc(48px);        /* sotto l'appbar; regola se cambi l'altezza */
+  z-index: 25;
+  background: #0b1220;
+  padding: .75rem 1rem .5rem;
+  border-bottom: 1px solid #122142;
+}
+.controls-row,
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem .6rem;
+  align-items: center;
+}
+
+/* Messaggio di stato */
+.status { margin: .4rem 0 0; opacity:.9; }
+
+/* ========= CAMPO DI GIOCO ========= */
+.playfield {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto; /* board cresce, palette auto */
+  gap: .75rem;
+  padding: .5rem 1rem 0;
+}
+
+/* Board centrata che si SCALA allo spazio disponibile */
+.board-wrap {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: .25rem 0 .5rem;
+}
+
+/* === BOARD: celle quadrate calcolate con min() === */
+.board{
+  --w: 10;                 /* impostate da JS */
+  --h: 6;
+  --gap: 4px;
+
+  display: grid;
+  gap: var(--gap);
+
+  /* larghezza/altezza per una cella, calcolate in base allo spazio */
+  --cellW: calc( (100% - var(--gap) * (var(--w) - 1)) / var(--w) );
+  --cellH: calc( (100% - var(--gap) * (var(--h) - 1)) / var(--h) );
+  --cell:  min(var(--cellW), var(--cellH));
+
+  grid-template-columns: repeat(var(--w), var(--cell));
+  grid-auto-rows: var(--cell);
+
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  background: #0f1a33;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #1a2a4d;
+
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+}
+
+.cell { position: relative; background:#0e172b; border-radius:4px; }
+.cell.dark { background:#0c1425; }
+.cell.hole { background:#1b0f0f; }
 .cell.piece{
   outline: 2px solid rgba(255,255,255,.22);
   border-radius: 4px;
-  filter:saturate(.9) brightness(1.02); /* più morbido */
+  filter: saturate(.9) brightness(1.02); /* più morbido */
 }
 
 /* Ghost (anteprima) più tenue */
@@ -50,44 +128,74 @@ html,body{margin:0;background:#0b1220;color:#e7e7ef;font-family:system-ui,-apple
   border-radius:3px;
   animation:placeFlash .18s ease-out forwards;
 }
-@keyframes placeFlash{
-  0%{opacity:1} 100%{opacity:0}
+@keyframes placeFlash{ 0%{opacity:1} 100%{opacity:0} }
+
+/* ========= PALETTE IN BASSO (STICKY) ========= */
+.palette-bar{
+  position: sticky;
+  bottom: 0;
+  background: #0b1220;
+  padding: .4rem 0 .7rem;
+  border-top: 1px solid #1a2a4d;
+  max-height: 28vh;      /* su laptop non “mangia” troppo spazio */
+  overflow: hidden;
 }
 
-/* Palette (mini 5x5) — adatta classi ai tuoi markup esistenti */
+/* Titolo/pulsanti della palette */
+.manual.panel2 { padding: 0 1rem; }
+.manual.panel2 h3 { margin: .25rem 0 .5rem; font-size: 1rem; opacity:.95; }
+
+/* Palette: scorrimento orizzontale fluido */
 .palette{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(86px,1fr));
-  gap:10px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(86px, 1fr);
+  gap: .5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: .25rem 0 .25rem;
+  scroll-snap-type: x proximity;
 }
-.tile{
-  background:#0f1a33;border:1px solid #1a2a4d;border-radius:12px;
-  padding:10px;display:grid;gap:6px;
-  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none
-}
-.tile .mini{--sq:16px;display:grid;grid-template-columns:repeat(5,var(--sq));grid-auto-rows:var(--sq);gap:3px;justify-content:center}
-.tile .mini .cell{width:var(--sq);height:var(--sq);background:#0e172b;border-radius:4px}
-.tile .mini .cell.on{background:#1e90ff}
-.tile .ctrls{display:flex;gap:6px}
-.tile .ctrls button{padding:6px 8px;border-radius:10px;background:#0b1326;border:1px solid #223055;color:#dbeafe}
+.palette > * { scroll-snap-align: start; }
 
-/* UI — pulsanti leggibili */
+/* Tile dei pezzi (mini 5x5) */
+.tile{
+  background:#0f1a33; border:1px solid #1a2a4d; border-radius:12px;
+  padding:10px; display:grid; gap:6px;
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
+}
+.tile .mini{
+  --sq:16px;
+  display:grid;
+  grid-template-columns:repeat(5,var(--sq));
+  grid-auto-rows:var(--sq);
+  gap:3px; justify-content:center;
+}
+.tile .mini .cell{ width:var(--sq); height:var(--sq); background:#0e172b; border-radius:4px; }
+.tile .mini .cell.on{ background:#1e90ff; }
+.tile .ctrls{ display:flex; gap:6px; }
+.tile .ctrls button{ padding:6px 8px; border-radius:10px; background:#0b1326; border:1px solid #223055; color:#dbeafe; }
+
+/* ========= UI — PULSANTI / INPUT ========= */
 button, .controls select, .controls input { font-size:16px; line-height:1.15; }
 button { font-weight:700; letter-spacing:.2px; padding:10px 14px; border-radius:10px; }
 button.ghost{ background:#ffffff; color:#0f172a; border:1px solid #3b82f6; }
 button.ghost:hover{ background:#f1f5f9; border-color:#2563eb; }
 
-/* Drag su mobile: blocca selezione/callout/drag nativo */
+/* Blocca selezione/callout/drag nativo durante il drag */
 .board, #palette, #palette .tile, .cell, .controls, .panel{
   -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
 }
 #palette .tile, .cell{ touch-action:none; -webkit-user-drag:none; }
 
-/* Responsive controlli/palette */
-@media (max-width:960px){
-  .controls { row-gap:.4rem; column-gap:.4rem; flex-wrap:wrap; }
-  .palette{ grid-template-columns:repeat(auto-fit,minmax(72px,1fr)); gap:.4rem; }
+/* ========= RESPONSIVE ========= */
+@media (min-width: 1000px){
+  .palette-bar{ max-height: 24vh; }
 }
-@media (max-width:600px){
+@media (max-width: 960px){
+  .controls { row-gap:.4rem; column-gap:.4rem; }
+  .manual.panel2 { padding: 0 .75rem; }
+}
+@media (max-width: 600px){
   .controls button, .controls select, .controls input{ font-size:17px; padding:11px 16px; }
 }
