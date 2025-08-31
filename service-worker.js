@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'exactcover-v11';
+const CACHE_NAME = 'exactcover-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,7 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/favicon.png'
+  './icons/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {

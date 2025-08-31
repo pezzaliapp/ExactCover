@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ExactCover — Pentomino PWA (v11)</title>
+  <title>ExactCover — Pentomino PWA</title>
   <meta name="theme-color" content="#0f172a" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" href="icons/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -15,7 +15,6 @@
     <div class="brand">
       <img src="icons/icon-192.png" alt="ExactCover icon" />
       <h1>ExactCover — Pentomino</h1>
-      <span class="ver">v11</span>
     </div>
     <div class="actions">
       <button id="installBtn" class="ghost" hidden>Installa</button>
@@ -51,23 +50,13 @@
         <button id="prevBtn" class="ghost" disabled>◀︎</button>
         <button id="nextBtn" class="ghost" disabled>▶︎</button>
         <button id="applyBtn" class="ghost" disabled>Applica</button>
-        <button id="shuffleBtn" class="ghost">Mescola</button>
       </div>
 
       <p id="status" class="status">Pronto.</p>
-
-      <div class="board-wrap">
-        <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
-        <div id="overlay" class="overlay" aria-hidden="true"></div>
-      </div>
-
-      <div id="gallery" class="gallery"></div>
-
+      <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
       <div class="legend">
         <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
         <span class="legend-item"><span class="cell demo piece"></span> Pezzo</span>
-        <span class="legend-item"><span class="cell demo preview"></span> Anteprima valida</span>
-        <span class="legend-item"><span class="cell demo preview bad"></span> Anteprima non valida</span>
       </div>
 
       <div class="manual panel2">
@@ -81,7 +70,7 @@
           <button id="clearPlacedBtn" class="ghost">Svuota posizionati</button>
         </div>
         <div id="palette" class="palette"></div>
-        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina dalla griglia per spostarlo. Premi <b>R</b> per ruotare e <b>F</b> per specchiare durante il drag.</small>
+        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina dalla griglia per spostarlo. Clic su una cella coperta per rimuoverlo.</small>
       </div>
     </section>
 
