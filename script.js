@@ -820,4 +820,165 @@ function pieceColor(letter){
     }, {passive:false});
     window.addEventListener('touchcancel', ()=>{ preventScroll=false; window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); }, {passive:false});
   }catch(err){ console.error('Touch fallback init error', err); }
+
+  /* ===== MOBILE TOUCH DnD FIX (iOS/Android) ===== */
+(function () {
+  try {
+    if (!window.boardEl) return;
+    const paletteEl = document.getElementById('palette');
+
+    // Stato drag condiviso
+    let DRAG = null;           // { L, shape, src:'palette'|'board', anchor:{r,c}, preview:{set,bad} }
+    let preventScroll = false; // blocca lo scroll solo mentre trascini
+
+    // Coordinate cella da punto schermo
+    const i2 = (r, c) => r * W + c;
+    function tEventToCell(pt) {
+      const rect = boardEl.getBoundingClientRect();
+      const col = Math.min(W - 1, Math.max(0, Math.floor((pt.clientX - rect.left) / (rect.width / W))));
+      const row = Math.min(H - 1, Math.max(0, Math.floor((pt.clientY - rect.top) / (rect.height / H))));
+      return { row, col };
+    }
+
+    // Verifica posizionamento (riusa la tua logica)
+    function canPlace(shape, r0, c0, ignore = null) {
+      for (const [dr, dc] of shape) {
+        const rr = r0 + dr, cc = c0 + dc;
+        if (rr < 0 || rr >= H || cc < 0 || cc >= W) return { ok: false, cells: [] };
+      }
+      const cells = [];
+      for (const [dr, dc] of shape) {
+        const rr = r0 + dr, cc = c0 + dc;
+        const k = i2(rr, cc);
+        if (holes.has(k)) return { ok: false, cells: [] };
+        for (const [L2, obj2] of placed) {
+          if (ignore && L2 === ignore) continue;
+          if (obj2.cells.includes(k)) return { ok: false, cells: [] };
+        }
+        cells.push(k);
+      }
+      return { ok: true, cells };
+    }
+
+    function updatePreviewFromPoint(pt) {
+      if (!DRAG) return;
+      const { row, col } = tEventToCell(pt);
+      const r0 = row - DRAG.anchor.r;
+      const c0 = col - DRAG.anchor.c;
+      const ignore = (DRAG.src === 'board') ? DRAG.L : null;
+      const probe = canPlace(DRAG.shape, r0, c0, ignore);
+
+      const set = new Set();
+      for (const [dr, dc] of DRAG.shape) {
+        const rr = r0 + dr, cc = c0 + dc;
+        if (rr >= 0 && rr < H && cc >= 0 && cc < W) set.add(i2(rr, cc));
+      }
+      DRAG.preview = { set, bad: !probe.ok };
+      if (typeof renderBoard === 'function') renderBoard();
+    }
+
+    function commitFromPoint(pt) {
+      if (!DRAG) return;
+      const { row, col } = tEventToCell(pt);
+      const r0 = row - DRAG.anchor.r;
+      const c0 = col - DRAG.anchor.c;
+      const ignore = (DRAG.src === 'board') ? DRAG.L : null;
+      const probe = canPlace(DRAG.shape, r0, c0, ignore);
+
+      preventScroll = false;
+      if (!probe.ok) {
+        DRAG = null;
+        if (typeof setStatus === 'function') setStatus('⛔ Posizione non valida.');
+        if (typeof renderBoard === 'function') renderBoard();
+        return;
+      }
+      placed.set(DRAG.L, { cells: probe.cells, r0, c0, shape: DRAG.shape.map(x => x.slice()) });
+      DRAG = null;
+      if (typeof renderBoard === 'function') renderBoard();
+      if (typeof setStatus === 'function') setStatus('Pezzo posizionato.');
+    }
+
+    // Avvio drag dalla PALETTE
+    function attachTileTouch(tile) {
+      const label = tile.querySelector('div:last-child');
+      const L = label ? (label.textContent || '').trim() : '';
+      if (!L) return;
+      tile.setAttribute('draggable', 'false');
+
+      tile.addEventListener('touchstart', (e) => {
+        const t = e.changedTouches[0]; if (!t) return;
+        e.preventDefault(); e.stopPropagation();   // evita selezione/callout
+        const base = orient[L] || (orient[L] = normalize(PENTOMINOES[L]));
+        DRAG = { L, shape: base.map(x => x.slice()), src: 'palette', anchor: { r: 0, c: 0 } };
+        preventScroll = true;
+        updatePreviewFromPoint(t);
+      }, { passive: false });
+    }
+
+    // Avvio drag dalla BOARD (pezzo già posato)
+    function attachCellTouch(cell, r, c) {
+      cell.setAttribute('draggable', 'false');
+      cell.addEventListener('touchstart', (e) => {
+        if (!cell.classList.contains('piece')) return;
+        const t = e.changedTouches[0]; if (!t) return;
+        e.preventDefault(); e.stopPropagation();
+
+        const hit = [...placed.entries()].find(([L, obj]) => obj.cells.includes(i2(r, c)));
+        if (!hit) return;
+        const [L, obj] = hit;
+        const shape = (obj.shape || orient[L] || normalize(PENTOMINOES[L])).map(x => x.slice());
+        DRAG = { L, shape, src: 'board', anchor: { r: r - obj.r0, c: c - obj.c0 } };
+        preventScroll = true;
+        updatePreviewFromPoint(t);
+      }, { passive: false });
+    }
+
+    // (Ri)aggancia i listener dopo ogni render
+    const _origRenderPalette = window.renderPalette;
+    if (_origRenderPalette) {
+      window.renderPalette = function () {
+        _origRenderPalette();
+        document.querySelectorAll('#palette .tile').forEach(attachTileTouch);
+      };
+    }
+    const _origRenderBoard = window.renderBoard;
+    if (_origRenderBoard) {
+      window.renderBoard = function (cmap) {
+        _origRenderBoard(cmap);
+        const cells = boardEl.querySelectorAll('.cell');
+        cells.forEach((cell, i) => attachCellTouch(cell, Math.floor(i / W), i % W));
+      };
+    }
+
+    // Move/End globali (seguono sempre il dito)
+    window.addEventListener('touchmove', (e) => {
+      if (!DRAG) return;
+      if (preventScroll) e.preventDefault();
+      const t = e.changedTouches[0]; if (!t) return;
+      updatePreviewFromPoint(t);
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      if (!DRAG) return;
+      const t = e.changedTouches[0]; if (!t) return;
+      const rect = boardEl.getBoundingClientRect();
+      // Commit solo se il dito è sopra la board
+      if (t.clientX >= rect.left && t.clientX <= rect.right && t.clientY >= rect.top && t.clientY <= rect.bottom) {
+        commitFromPoint(t);
+      } else {
+        preventScroll = false; DRAG = null;
+        if (typeof renderBoard === 'function') renderBoard();
+        if (typeof setStatus === 'function') setStatus('Posizionamento annullato.');
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchcancel', () => {
+      preventScroll = false; DRAG = null;
+      if (typeof renderBoard === 'function') renderBoard();
+    }, { passive: false });
+
+  } catch (err) {
+    console.error('Mobile DnD patch error', err);
+  }
+})();
 })();
