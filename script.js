@@ -160,7 +160,7 @@
             src:'board', anchor:{r:rClick-r0, c:cClick-c0},
             from:{r0, c0, cells:obj.cells.slice()}
           };
-          boardEl.setPointerCapture(e.pointerId);
+          if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
           updatePreviewFromEvent(e);
         });
 
@@ -211,7 +211,7 @@
       tile.addEventListener('pointerdown', (e)=>{
         const shape=orient[L]||(orient[L]=normalize(PENTOMINOES[L]));
         DRAG = { L, shape: shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
-        boardEl.setPointerCapture(e.pointerId);
+        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
         updatePreviewFromEvent(e);
       });
 
