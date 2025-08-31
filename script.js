@@ -539,21 +539,31 @@
   });
 
 })();
-// ===== Mobile tap-to-place (keeps desktop DnD) =====
+
+/* ===== Drag mobile (Pointer + Touch) — Patch ===== */
 (function(){
   try{
-    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0);
-    if (!isTouch) return; // desktop unchanged
+    if (!window.boardEl) return;
 
-    let tapSelected = null;      // { L, shape }
-    let tapMoving = null;        // { L, anchor:{r,c} }
+    let DRAG = null; // { L, shape, src:'palette'|'board', anchor:{r,c}, preview:{set,bad} }
 
+    const cellIndex = (r,c)=> r*W + c;
+    function getPoint(e){
+      if (e.touches && e.touches.length) return { x:e.touches[0].clientX, y:e.touches[0].clientY };
+      return { x:e.clientX, y:e.clientY };
+    }
+    function pointToCell(pt){
+      const rect = boardEl.getBoundingClientRect();
+      const col = Math.min(W-1, Math.max(0, Math.floor((pt.x-rect.left)/(rect.width/W))));
+      const row = Math.min(H-1, Math.max(0, Math.floor((pt.y-rect.top)/(rect.height/H))));
+      return {row, col};
+    }
     function canPlaceAt(shape, r0, c0, ignore=null){
       const cells=[];
       for (const [dr,dc] of shape){
         const rr=r0+dr, cc=c0+dc;
         if (rr<0||rr>=H||cc<0||cc>=W) return {ok:false,cells:[]};
-        const k = rr*W+cc;
+        const k=cellIndex(rr,cc);
         if (holes.has(k)) return {ok:false,cells:[]};
         for (const [L2,obj2] of placed){
           if (ignore && L2===ignore) continue;
@@ -563,75 +573,101 @@
       }
       return {ok:true,cells};
     }
+    function updatePreview(pt){
+      if (!DRAG) return;
+      const {row,col} = pointToCell(pt);
+      const r0=row-DRAG.anchor.r, c0=col-DRAG.anchor.c;
+      const ignore = (DRAG.src==='board') ? DRAG.L : null;
+      const probe = canPlaceAt(DRAG.shape, r0, c0, ignore);
+      const set = new Set();
+      for (const [dr,dc] of DRAG.shape){
+        const rr=r0+dr, cc=c0+dc;
+        if (rr>=0&&rr<H&&cc>=0&&cc<W) set.add(cellIndex(rr,cc));
+      }
+      DRAG.preview = { set, bad: !probe.ok };
+      if (typeof renderBoard==='function') renderBoard();
+    }
+    function commit(pt){
+      if (!DRAG) return;
+      const {row,col} = pointToCell(pt);
+      const r0=row-DRAG.anchor.r, c0=col-DRAG.anchor.c;
+      const ignore = (DRAG.src==='board') ? DRAG.L : null;
+      const probe = canPlaceAt(DRAG.shape, r0, c0, ignore);
+      if (!probe.ok){
+        DRAG=null; if (typeof renderBoard==='function') renderBoard();
+        if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.');
+        return;
+      }
+      placed.set(DRAG.L, {cells:probe.cells, shape:DRAG.shape.map(x=>x.slice()), r0, c0});
+      DRAG=null; if (typeof renderBoard==='function') renderBoard();
+      if (typeof setStatus==='function') setStatus('Pezzo posizionato.');
+    }
 
-    const _origRenderPalette = window.renderPalette;
-    if (_origRenderPalette){
+    const _origPalette = window.renderPalette;
+    if (_origPalette){
       window.renderPalette = function(){
-        _origRenderPalette();
+        _origPalette();
         document.querySelectorAll('#palette .tile').forEach(tile=>{
+          const L = tile.querySelector('div:last-child')?.textContent?.trim();
+          if (!L) return;
           tile.setAttribute('draggable','false');
-          tile.addEventListener('touchstart', e=>{ e.preventDefault(); }, {passive:false});
-          tile.addEventListener('click', ()=>{
-            const lbl = tile.querySelector('div:last-child');
-            const L = lbl ? (lbl.textContent||'').trim() : '';
-            if (!L) return;
+          tile.addEventListener('pointerdown', (e)=>{
+            e.preventDefault();
             const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
-            tapSelected = { L, shape: shape.map(x=>x.slice()) };
-            tapMoving = null;
-            if (window.pieceSelect) pieceSelect.value = L;
-            if (typeof setStatus==='function') setStatus(`Selezionato ${L}: tocca la griglia per posarlo.`);
-            document.querySelectorAll('#palette .tile').forEach(t=>t.classList.remove('active'));
-            tile.classList.add('active');
+            DRAG = { L, shape:shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
+            tile.setPointerCapture?.(e.pointerId);
+            updatePreview(getPoint(e));
           });
+          tile.addEventListener('touchstart', (e)=>{
+            const t=e.touches[0]; if (!t) return;
+            e.preventDefault();
+            const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
+            DRAG = { L, shape:shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
+            updatePreview({x:t.clientX,y:t.clientY});
+          }, {passive:false});
         });
-      }
+      };
     }
 
-    const _origRenderBoard = window.renderBoard;
-    if (_origRenderBoard){
+    const _origBoard = window.renderBoard;
+    if (_origBoard){
       window.renderBoard = function(colormap){
-        _origRenderBoard(colormap);
+        _origBoard(colormap);
         const cells = boardEl.querySelectorAll('.cell');
-        cells.forEach((cell, i)=>{
-          const r = Math.floor(i/W), c=i%W;
+        cells.forEach((cell,i)=>{
+          const r=Math.floor(i/W), c=i%W;
           cell.setAttribute('draggable','false');
-          cell.addEventListener('touchstart', e=>{ e.preventDefault(); }, {passive:false});
-          cell.addEventListener('click', ()=>{
-            const k = i;
-            if (tapSelected){
-              const {L, shape} = tapSelected;
-              const probe = canPlaceAt(shape, r, c, null);
-              if (!probe.ok){ if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.'); return; }
-              placed.set(L, {cells:probe.cells, shape:shape.map(x=>x.slice()), r0:r, c0:c});
-              tapSelected = null;
-              document.querySelectorAll('#palette .tile').forEach(t=>t.classList.remove('active'));
-              if (typeof renderBoard==='function') renderBoard();
-              if (typeof setStatus==='function') setStatus(`Posato ${L}.`);
-              return;
-            }
-            for (const [L, obj] of placed){
-              if (obj.cells.includes(k)){
-                tapMoving = { L, anchor:{ r: r-obj.r0, c: c-obj.c0 } };
-                tapSelected = null;
-                document.querySelectorAll('#palette .tile').forEach(t=>t.classList.remove('active'));
-                if (typeof setStatus==='function') setStatus(`Sposta ${L}: tocca la nuova posizione.`);
-                return;
-              }
-            }
-            if (tapMoving){
-              const {L, anchor} = tapMoving;
-              const shape = (placed.get(L)?.shape) || (orient[L]||normalize(PENTOMINOES[L]));
-              const r0 = r - anchor.r, c0 = c - anchor.c;
-              const probe = canPlaceAt(shape, r0, c0, L);
-              if (!probe.ok){ if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.'); return; }
-              placed.set(L, {cells:probe.cells, shape:shape.map(x=>x.slice()), r0, c0});
-              tapMoving = null;
-              if (typeof renderBoard==='function') renderBoard();
-              if (typeof setStatus==='function') setStatus(`Spostato ${L}.`);
-            }
+          cell.addEventListener('pointerdown', (e)=>{
+            if (!cell.classList.contains('piece')) return;
+            e.preventDefault();
+            const hit=[...placed.entries()].find(([L,obj])=>obj.cells.includes(cellIndex(r,c)));
+            if (!hit) return;
+            const [L,obj]=hit;
+            const shape=(obj.shape||orient[L]||normalize(PENTOMINOES[L])).map(x=>x.slice());
+            DRAG={ L, shape, src:'board', anchor:{r:r-obj.r0, c:c-obj.c0} };
+            cell.setPointerCapture?.(e.pointerId);
+            updatePreview(getPoint(e));
           });
+          cell.addEventListener('touchstart', (e)=>{
+            if (!cell.classList.contains('piece')) return;
+            const t=e.touches[0]; if (!t) return;
+            e.preventDefault();
+            const hit=[...placed.entries()].find(([L,obj])=>obj.cells.includes(cellIndex(r,c)));
+            if (!hit) return;
+            const [L,obj]=hit;
+            const shape=(obj.shape||orient[L]||normalize(PENTOMINOES[L])).map(x=>x.slice());
+            DRAG={ L, shape, src:'board', anchor:{r:r-obj.r0, c:c-obj.c0} };
+            updatePreview({x:t.clientX,y:t.clientY});
+          }, {passive:false});
         });
-      }
+      };
+
+      window.addEventListener('pointermove', (e)=>{ if (DRAG) updatePreview(getPoint(e)); }, {passive:true});
+      window.addEventListener('pointerup',   (e)=>{ if (DRAG) commit(getPoint(e)); }, {passive:true});
+      window.addEventListener('touchmove',   (e)=>{ if (DRAG){ e.preventDefault(); updatePreview({x:e.touches[0].clientX,y:e.touches[0].clientY}); } }, {passive:false});
+      window.addEventListener('touchend',    (e)=>{ if (DRAG){ const t=e.changedTouches[0]; commit({x:t.clientX,y:t.clientY}); } }, {passive:false});
+      window.addEventListener('touchcancel', ()=>{ if (DRAG){ DRAG=null; if (typeof renderBoard==='function') renderBoard(); } }, {passive:false});
     }
-  }catch(e){ console.error('Tap-to-place init error', e); }
+  }catch(err){ console.error('Mobile drag init error', err); }
 })();
+
