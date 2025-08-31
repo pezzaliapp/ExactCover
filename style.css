@@ -1,221 +1,309 @@
 /* =========================================================
-   Pentomino Exact Cover — CSS riscritto “from scratch”
-   Obiettivi:
-   - Board sempre visibile (altezza garantita)
-   - Palette orizzontale scrollabile su mobile e desktop
-   - Controlli sticky sotto header
-   - Comportamento coerente su iOS (100dvh / safe areas)
+   Pentomino Exact Cover — CSS definitivo
+   - Board sempre visibile
+   - Palette orizzontale scrollabile (iOS/Android friendly)
+   - Controlli sticky
+   - Ottimizzato per laptop + iPhone/Android
    ========================================================= */
 
-/* ---------- Tema & reset ---------- */
+/* ---------------- Tema & reset ---------------- */
 :root {
   color-scheme: dark;
-  --header-h: 56px;         /* altezza header appbar */
-  --gap: 4px;               /* gap celle board */
-  --tile-w: 88px;           /* larghezza card palette (desktop) */
-  --tile-w-sm: 80px;        /* larghezza card palette (mobile) */
-  --mini-sq: 14px;          /* lato cella mini-anteprima */
-  --mini-sq-sm: 12px;       /* lato cella mini-anteprima (mobile) */
+  --appbar-offset: 56px;   /* altezza effettiva dell'header */
+  --gap: 4px;              /* gap fra celle della board */
+
+  /* Dimensioni palette tasselli (compatte) */
+  --tile-w: 88px;          /* larghezza card desktop/tablet */
+  --tile-w-sm: 80px;       /* larghezza card smartphone */
+  --mini-sq: 14px;         /* lato cella mini-anteprima desktop */
+  --mini-sq-sm: 12px;      /* lato cella mini-anteprima mobile */
 }
 
-* { 
-  box-sizing: border-box; 
-}
-html, body{
-  margin:0;
-  background:#0b1220;
-  color:#e7e7ef;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  min-height:100dvh;                 /* viewport dinamica */
-  min-height:-webkit-fill-available; /* fallback iOS */
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-/* ---------- AppBar ---------- */
-.appbar{
-  position:sticky; top:0; z-index:30;
-  background:#0b1220;
-  border-bottom:1px solid #122142;
-}
-.appbar .brand{ padding:.75rem 1rem; }
-.appbar h1{ margin:0; font-size:clamp(18px,2.2vw,28px); letter-spacing:.2px; }
+html, body {
+  margin: 0;
+  background: #0b1220;
+  color: #e7e7ef;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 
-/* ---------- Layout generale ---------- */
-.app{
-  min-height:100dvh; min-height:-webkit-fill-available;
-  display:grid; grid-template-rows:auto minmax(0,1fr);
+  /* viewport sicuro su iOS/Android */
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden; /* evita scroll orizzontale globale */
 }
 
-/* Barra controlli sticky sotto l’header */
-.controls.panel{
-  position:sticky; top:var(--header-h); z-index:25;
-  background:#0b1220; border-bottom:1px solid #122142;
-  padding:.75rem 1rem .55rem;
+/* ---------------- AppBar ---------------- */
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #0b1220;
+  border-bottom: 1px solid #122142;
 }
-.controls{ display:flex; flex-wrap:wrap; gap:.5rem .6rem; align-items:center; }
-.status{ margin:.35rem 0 0; opacity:.9; }
+.appbar .brand { padding: .75rem 1rem; }
+.appbar h1 {
+  margin: 0;
+  font-size: clamp(18px, 2.2vw, 28px);
+  letter-spacing: .2px;
+}
 
-/* ---------- Campo di gioco (board + palette) ---------- */
-.playfield{
-  min-height:0;
-  display:grid;
-  grid-template-rows: minmax(0,1fr) auto;  /* board cresce, palette auto */
-  gap:.8rem;
-  padding:.6rem 1rem .4rem;
-  overscroll-behavior:contain;
+/* ---------------- Layout generale ---------------- */
+.app {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* Controlli sticky sotto l’header */
+.controls.panel {
+  position: sticky;
+  top: var(--appbar-offset);
+  z-index: 25;
+  background: #0b1220;
+  padding: .75rem 1rem .5rem;
+  border-bottom: 1px solid #122142;
+}
+.controls-row,
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem .6rem;
+  align-items: center;
+}
+.status { margin: .4rem 0 0; opacity: .9; }
+
+/* ---------------- Campo di gioco ----------------
+   Riga 1: board (cresce)
+   Riga 2: palette (auto) */
+.playfield {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: .75rem;
+  padding: .5rem 1rem .4rem;
+  overscroll-behavior: contain;
 }
 
 /* Board-wrap con ALTEZZA GARANTITA
-   clamp(min, preferito, max) → visibile sempre */
-.board-wrap{
-  min-height:0;
-  display:grid; place-items:center;
-  padding:.25rem 0 .5rem;
+   clamp(min, preferito, max) => la griglia si vede sempre */
+.board-wrap {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: .25rem 0 .5rem;
   height: clamp(260px, 58vh, 72vh);
+  overflow: hidden; /* blocca eventuali overflow */
 }
 
-/* ---------- Board: griglia quadrata elastica ---------- */
-.board{
-  /* JS aggiorna --w e --h */
-  --w: 10;
+/* ---------------- Board: griglia elastica ---------------- */
+.board {
+  --w: 10;      /* aggiornate via JS */
   --h: 6;
-  display:grid; gap: var(--gap);
+  --gap: var(--gap);
 
-  /* dimensione cella quadrata in base allo spazio reale */
+  display: grid;
+  gap: var(--gap);
+
+  /* dimensione cella quadrata calcolata */
   --cellW: calc((100% - var(--gap) * (var(--w) - 1)) / var(--w));
   --cellH: calc((100% - var(--gap) * (var(--h) - 1)) / var(--h));
-  --cell:  min(var(--cellW), var(--cellH));
+  --cell: min(var(--cellW), var(--cellH));
 
   grid-template-columns: repeat(var(--w), var(--cell));
   grid-auto-rows: var(--cell);
 
-  width:100%; height:100%; max-height:100%;
-  background:#0f1a33; padding:4px; border-radius:12px; border:1px solid #1a2a4d;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  background: #0f1a33;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #1a2a4d;
 
-  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none; /* drag preciso */
 }
-.cell{ position:relative; background:#0e172b; border-radius:4px; }
-.cell.dark{ background:#0c1425; }
-.cell.hole{ background:#1b0f0f; }
-.cell.piece{ outline:2px solid rgba(255,255,255,.22); border-radius:4px; filter:saturate(.9) brightness(1.02); }
-
-/* Ghost anteprima */
-.cell.preview::after{
-  content:""; position:absolute; inset:0;
-  background:rgba(34,197,94,.28);
-  outline:1px dashed rgba(34,197,94,.85);
-  border-radius:3px;
+.cell { position: relative; background: #0e172b; border-radius: 4px; }
+.cell.dark { background: #0c1425; }
+.cell.hole { background: #1b0f0f; }
+.cell.piece {
+  outline: 2px solid rgba(255, 255, 255, .22);
+  border-radius: 4px;
+  filter: saturate(.9) brightness(1.02);
 }
-.cell.preview.bad::after{
-  background:rgba(239,68,68,.45);
-  outline:1px dashed rgba(239,68,68,.9);
+
+/* Ghost (anteprima) */
+.cell.preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(34, 197, 94, .30);
+  outline: 1px dashed rgba(34, 197, 94, .8);
+  border-radius: 3px;
 }
-/* Flash breve quando posi un pezzo */
-.cell.flash::after{
-  content:""; position:absolute; inset:0;
-  background:rgba(34,197,94,.35);
-  border-radius:3px; animation:placeFlash .18s ease-out forwards;
+.cell.preview.bad::after {
+  background: rgba(239, 68, 68, .45);
+  outline: 1px dashed rgba(239, 68, 68, .9);
 }
-@keyframes placeFlash{ 0%{opacity:1} 100%{opacity:0} }
 
-/* ---------- Palette (markup: .manual.panel2 > .palette) ---------- */
-.manual.panel2{ padding:0 1rem; }
-.manual.panel2 h3{ margin:.25rem 0 .55rem; font-size:1rem; opacity:.95; }
+/* Flash verde quando posi un pezzo */
+.cell.flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(34, 197, 94, .35);
+  border-radius: 3px;
+  animation: placeFlash .18s ease-out forwards;
+}
+@keyframes placeFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
 
-/* Strip orizzontale scrollabile (robusta su iOS) */
-.palette{
-  display:flex; gap:.55rem;
-  overflow-x:auto; overflow-y:hidden;
-  padding:.25rem 0 .25rem;
-  -webkit-overflow-scrolling:touch;
-  scroll-snap-type:x proximity;
+/* ---------------- Palette (markup: .manual.panel2 > .palette) ---------------- */
+.manual.panel2 { padding: 0 1rem; }
+.manual.panel2 h3 { margin: .25rem 0 .5rem; font-size: 1rem; opacity: .95; }
 
-  /* fade ai bordi → suggerisce lo scroll */
-  -webkit-mask-image:linear-gradient(to right,
+/* Strip orizzontale scrollabile (robusta su iOS/Android) */
+.palette {
+  display: flex;
+  gap: .55rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: .25rem 0 .25rem;
+  -webkit-overflow-scrolling: touch;  /* inerzia iOS */
+  scroll-snap-type: x proximity;
+  touch-action: pan-x;                /* scroll orizzontale consentito */
+
+  /* fade ai bordi = suggerisce lo scroll */
+  -webkit-mask-image: linear-gradient(to right,
      rgba(0,0,0,.05), #000 24px, #000 calc(100% - 24px), rgba(0,0,0,.05));
-          mask-image:linear-gradient(to right,
+          mask-image: linear-gradient(to right,
      rgba(0,0,0,.05), #000 24px, #000 calc(100% - 24px), rgba(0,0,0,.05));
 }
-.palette::-webkit-scrollbar{ display:none; }
+.palette::-webkit-scrollbar { display: none; }
 
 /* Card del pezzo */
-.tile{
-  flex: 0 0 var(--tile-w);           /* larghezza fissa = scorre bene */
-  background:#0f1a33; border:1px solid #1a2a4d; border-radius:12px;
-  padding:10px; display:grid; gap:6px;
-  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
-  scroll-snap-align:start;
+.tile {
+  flex: 0 0 var(--tile-w);  /* larghezza fissa = la strip scorre davvero */
+  background: #0f1a33;
+  border: 1px solid #1a2a4d;
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  scroll-snap-align: start;
 }
-/* mini griglia 5×5 dentro la card */
-.tile .mini{
+
+/* Mini griglia 5×5 dentro la card */
+.tile .mini {
   --sq: var(--mini-sq);
-  display:grid; grid-template-columns:repeat(5, var(--sq)); grid-auto-rows:var(--sq);
-  gap:3px; justify-content:center;
+  display: grid;
+  grid-template-columns: repeat(5, var(--sq));
+  grid-auto-rows: var(--sq);
+  gap: 3px;
+  justify-content: center;
 }
-.tile .mini .cell{ width:var(--sq); height:var(--sq); background:#0e172b; border-radius:4px; }
-.tile .mini .cell.on{ background:#1e90ff; }
-.tile .ctrls{ display:flex; gap:6px; }
-.tile .ctrls button{ padding:6px 8px; border-radius:10px; background:#0b1326; border:1px solid #223055; color:#dbeafe; }
+.tile .mini .cell { width: var(--sq); height: var(--sq); background: #0e172b; border-radius: 4px; }
+.tile .mini .cell.on { background: #1e90ff; }
 
-/* ---------- UI (pulsanti & input) ---------- */
-button, .controls select, .controls input{ font-size:16px; line-height:1.15; }
-button{ font-weight:700; letter-spacing:.2px; padding:10px 14px; border-radius:10px; }
-button.ghost{ background:#fff; color:#0f172a; border:1px solid #3b82f6; }
-button.ghost:hover{ background:#f1f5f9; border-color:#2563eb; }
-
-/* Disabilita selezioni durante il drag */
-.board, #palette, #palette .tile, .cell, .controls, .panel{
-  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+.tile .ctrls { display: flex; gap: 6px; }
+.tile .ctrls button {
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #0b1326;
+  border: 1px solid #223055;
+  color: #dbeafe;
 }
-#palette .tile, .cell{ touch-action:none; -webkit-user-drag:none; }
+
+/* ---------------- UI — Pulsanti/Input ---------------- */
+button, .controls select, .controls input { font-size: 16px; line-height: 1.15; } /* >=16px: niente zoom iOS */
+button { font-weight: 700; letter-spacing: .2px; padding: 10px 14px; border-radius: 10px; }
+button.ghost { background: #ffffff; color: #0f172a; border: 1px solid #3b82f6; }
+button.ghost:hover { background: #f1f5f9; border-color: #2563eb; }
+
+/* Disabilita selezioni durante drag */
+.board, #palette, #palette .tile, .cell, .controls, .panel {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#palette .tile, .cell { touch-action: none; -webkit-user-drag: none; }
 
 /* =========================================================
    Responsiveness
    ========================================================= */
 
-/* --- iPhone / telefoni in verticale --- */
-@media (max-width: 768px) and (orientation: portrait){
-  .playfield{ padding:.45rem .8rem .35rem; gap:.6rem; }
-  .board-wrap{
-    /* un filo più alta in portrait, per giocare comodi */
+/* --- Smartphone in PORTRAIT --- */
+@media (max-width: 768px) and (orientation: portrait) {
+  .playfield { padding: .45rem .8rem .35rem; gap: .6rem; }
+
+  /* Board un filo più alta in portrait */
+  .board-wrap {
     height: clamp(260px, 60vh, 68vh);
-    padding:.2rem 0 .28rem;
+    padding: .2rem 0 .28rem;
   }
-  .board{ --gap:3px; }
-  .manual.panel2{
-    /* tieni la palette “appiccicata” in basso, senza coprire */
-    position:sticky; bottom:0; z-index:20;
-    background:#0b1220; border-top:1px solid #1a2a4d;
+  .board { --gap: 3px; }
+
+  /* Palette sticky in basso, compatta */
+  .manual.panel2 {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: #0b1220;
+    border-top: 1px solid #1a2a4d;
     padding: 0 1rem calc(.7rem + env(safe-area-inset-bottom));
   }
-  .tile{ flex:0 0 var(--tile-w-sm); padding:8px; border-radius:10px; }
-  .tile .mini{ --sq: var(--mini-sq-sm); gap:2px; }
+  .tile { flex: 0 0 var(--tile-w-sm); padding: 8px; border-radius: 10px; }
+  .tile .mini { --sq: var(--mini-sq-sm); gap: 2px; }
 }
 
-/* --- telefoni/tablet in orizzontale molto bassi --- */
-@media (max-height: 520px) and (orientation: landscape){
-  .controls.panel{ top: calc(var(--header-h) - 8px); }
-  .board-wrap{ height: clamp(220px, 55vh, 64vh); }
-  .manual.panel2{
-    position:static; border-top:1px solid #1a2a4d; padding-bottom:.75rem;
+/* --- Dispositivi bassi in LANDSCAPE (es. iPhone) --- */
+@media (max-height: 520px) and (orientation: landscape) {
+  .controls.panel { top: calc(var(--appbar-offset) - 8px); }
+
+  /* Board un po' più contenuta per lasciare spazio alla palette */
+  .board-wrap { height: clamp(220px, 55vh, 64vh); }
+
+  .manual.panel2 {
+    position: static;
+    border-top: 1px solid #1a2a4d;
+    padding-bottom: .75rem;
   }
-  /* palette a griglia multi-riga, scroll verticale */
-  .palette{
-    display:grid; grid-auto-flow:row;
-    grid-template-columns:repeat(auto-fill, minmax(86px, 1fr));
-    gap:.5rem; max-height:46vh;
-    overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
-    -webkit-mask-image:none; mask-image:none;
+
+  /* Palette multi-riga con scroll verticale */
+  .palette {
+    display: grid;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: .5rem;
+    max-height: 46vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: none;
+            mask-image: none;
   }
-  .tile{ flex:0 0 auto; }
+  .tile { flex: 0 0 auto; }
 }
 
-/* --- schermi molto stretti --- */
-@media (max-width: 380px){
-  .board{ --gap:2.5px; }
-  .tile .mini{ --sq: 13px; }
+/* --- Schermi molto stretti --- */
+@media (max-width: 380px) and (orientation: portrait) {
+  .board { --gap: 2.5px; }
+  .tile .mini { --sq: 13px; }
 }
 
-/* --- laptop grandi: niente sticky palette --- */
-@media (min-width: 1100px){
-  .manual.panel2{ position:static; }
+/* --- Laptop ampi: palette non sticky --- */
+@media (min-width: 1100px) {
+  .manual.panel2 { position: static; }
 }
