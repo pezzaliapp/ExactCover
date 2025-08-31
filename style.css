@@ -56,7 +56,8 @@ input[type="number"]{width:5rem}
 .cell.preview::after{
   content:"";
   position:absolute; inset:0;
-  background:rgba(255,255,255,.14);
+  background:rgba(34,197,94,.35); /* green */
+  pointer-events:none;
 }
 .cell.preview.bad::after{
   background:rgba(239,68,68,.35); /* red-ish when invalid */

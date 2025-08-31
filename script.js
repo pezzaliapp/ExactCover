@@ -569,3 +569,7 @@
 
   boardEl.addEventListener('dragleave', ()=>{ if (DRAG_STATE){ delete DRAG_STATE.preview; renderBoard(currentColorMap()); }});
   boardEl.addEventListener('dragend', ()=>{ if (DRAG_STATE){ DRAG_STATE=null; renderBoard(currentColorMap()); }});
+
+  // Clear preview when drag ends anywhere
+  document.addEventListener('dragend', ()=>{ if (DRAG_STATE){ DRAG_STATE=null; renderBoard(currentColorMap()); }});
+  document.addEventListener('drop', ()=>{ /* handled on board; keep */ });
