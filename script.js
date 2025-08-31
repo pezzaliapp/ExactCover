@@ -707,3 +707,117 @@ function pieceColor(letter){
     document.querySelectorAll('.cell').forEach(c => c.setAttribute('draggable','false'));
   }
 })();
+
+
+// === Touch fallback for iOS (when pointer events are flaky) ===
+(function(){
+  try{
+    if (typeof boardEl === 'undefined' || !boardEl) return;
+    const paletteEl = document.getElementById('palette');
+    let preventScroll = false;
+    function onTouchMoveBlock(e){ if (preventScroll) e.preventDefault(); }
+    window.addEventListener('touchmove', onTouchMoveBlock, {passive:false});
+
+    function tEventToCell(t){
+      const rect = boardEl.getBoundingClientRect();
+      const col = Math.min(W-1, Math.max(0, Math.floor((t.clientX-rect.left)/(rect.width/W))));
+      const row = Math.min(H-1, Math.max(0, Math.floor((t.clientY-rect.top)/(rect.height/H))));
+      return {row,col};
+    }
+    function tUpdatePreview(t){
+      const DRAG = window.__PEZZALI_DRAG; if (!DRAG) return;
+      const {row,col} = tEventToCell(t);
+      const r0=row-DRAG.anchor.r, c0=col-DRAG.anchor.c;
+      const ignore = (DRAG.src==='board') ? DRAG.L : null;
+      const probe = (typeof canPlaceShapeAt==='function')
+        ? canPlaceShapeAt(DRAG.shape, r0, c0, ignore)
+        : {ok:true,cells:[]};
+      const set = new Set();
+      for (const [dr,dc] of DRAG.shape){
+        const rr=r0+dr, cc=c0+dc;
+        if (rr>=0 && rr<H && cc>=0 && cc<W) set.add(rr*W+cc);
+      }
+      window.__PEZZALI_DRAG.preview = {set, bad: !probe.ok};
+      if (typeof renderBoard==='function') renderBoard();
+    }
+    function tCommit(t){
+      const DRAG = window.__PEZZALI_DRAG; if (!DRAG) return;
+      const {row,col} = tEventToCell(t);
+      const r0=row-DRAG.anchor.r, c0=col-DRAG.anchor.c;
+      const ignore = (DRAG.src==='board') ? DRAG.L : null;
+      const probe = (typeof canPlaceShapeAt==='function')
+        ? canPlaceShapeAt(DRAG.shape, r0, c0, ignore)
+        : {ok:false,cells:[]};
+      preventScroll=false;
+      if (!probe.ok){ window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.'); return; }
+      placed.set(DRAG.L, {cells:probe.cells, r0, c0, shape:DRAG.shape.map(x=>x.slice())});
+      window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); if (typeof setStatus==='function') setStatus('Pezzo posizionato.');
+    }
+
+    function attachTileTouch(tile){
+      const L = tile.querySelector('div:last-child')?.textContent?.trim();
+      if (!L) return;
+      tile.setAttribute('draggable','false');
+      tile.addEventListener('touchstart', (e)=>{
+        const t=e.changedTouches[0]; if (!t) return;
+        e.preventDefault(); e.stopPropagation();
+        const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
+        window.__PEZZALI_DRAG = { L, shape: shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
+        preventScroll=true;
+        tUpdatePreview(t);
+      }, {passive:false});
+    }
+
+    function attachCellTouch(cell, r, c){
+      cell.setAttribute('draggable','false');
+      cell.addEventListener('touchstart', (e)=>{
+        if (!cell.classList.contains('piece')) return;
+        const t=e.changedTouches[0]; if (!t) return;
+        e.preventDefault(); e.stopPropagation();
+        const hit=[...placed.entries()].find(([L,obj])=>obj.cells.includes(r*W+c));
+        if (!hit) return;
+        const [L,obj]=hit;
+        window.__PEZZALI_DRAG = { L, shape:(obj.shape||orient[L]||normalize(PENTOMINOES[L])).map(x=>x.slice()), src:'board', anchor:{r:r-obj.r0,c:c-obj.c0} };
+        preventScroll=true;
+        tUpdatePreview(t);
+      }, {passive:false});
+    }
+
+    // Wire up after render
+    const _origPal = window.renderPalette;
+    if (_origPal){
+      window.renderPalette = function(){
+        _origPal();
+        document.querySelectorAll('#palette .tile').forEach(attachTileTouch);
+      }
+    }
+    const _origBoard = window.renderBoard;
+    if (_origBoard){
+      window.renderBoard = function(colormap){
+        _origBoard(colormap);
+        const cells = boardEl.querySelectorAll('.cell');
+        cells.forEach((cell,i)=> attachCellTouch(cell, Math.floor(i/W), i%W));
+      }
+    }
+    // Global trackers
+    window.addEventListener('touchmove', (e)=>{
+      if (!window.__PEZZALI_DRAG) return;
+      const t=e.changedTouches[0]; if (!t) return;
+      tUpdatePreview(t);
+    }, {passive:false});
+    window.addEventListener('touchend', (e)=>{
+      if (!window.__PEZZALI_DRAG) return;
+      const t=e.changedTouches[0]; if (!t) return;
+      // commit only if over board
+      const rect=boardEl.getBoundingClientRect();
+      if (t.clientX>=rect.left && t.clientX<=rect.right && t.clientY>=rect.top && t.clientY<=rect.bottom){
+        tCommit(t);
+      } else {
+        preventScroll=false; window.__PEZZALI_DRAG=null;
+        if (typeof renderBoard==='function') renderBoard();
+        if (typeof setStatus==='function') setStatus('Posizionamento annullato.');
+      }
+    }, {passive:false});
+    window.addEventListener('touchcancel', ()=>{ preventScroll=false; window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); }, {passive:false});
+  }catch(err){ console.error('Touch fallback init error', err); }
+})();
