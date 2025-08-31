@@ -67,3 +67,7 @@ input[type="number"]{width:5rem}
 /* Stronger outline for placed pieces on dark screens */
 .cell.piece{outline:2.5px solid rgba(255,255,255,.22)}
 
+
+/* Preview overlays (pointer DnD) */
+.cell.preview::after{content:"";position:absolute;inset:0;background:rgba(34,197,94,.38)}
+.cell.preview.bad::after{background:rgba(239,68,68,.48)}

@@ -572,3 +572,110 @@ function pieceColor(letter){
   });
 
 })();
+
+
+// === Pointer-based Drag & Drop (works on mobile + desktop) ===
+(function(){
+  try{
+    if (typeof boardEl === 'undefined' || !boardEl) return;
+    // state shared with existing code
+    window.__PEZZALI_DRAG = window.__PEZZALI_DRAG || null;
+    const getIdx = (r,c)=> r*W + c;
+
+    function eventToCell(e){
+      const rect = boardEl.getBoundingClientRect();
+      const col = Math.min(W-1, Math.max(0, Math.floor((e.clientX-rect.left)/(rect.width/W))));
+      const row = Math.min(H-1, Math.max(0, Math.floor((e.clientY-rect.top)/(rect.height/H))));
+      return {row, col};
+    }
+
+    function canPlaceShapeAt(shape, r0, c0, ignoreLetter=null){
+      const cells=[];
+      for (const [dr,dc] of shape){
+        const rr=r0+dr, cc=c0+dc;
+        if (rr<0||rr>=H||cc<0||cc>=W) return {ok:false,cells:[]};
+        const k=getIdx(rr,cc);
+        if (holes.has(k)) return {ok:false,cells:[]};
+        for (const [L2,obj2] of placed){
+          if (ignoreLetter && L2===ignoreLetter) continue;
+          if (obj2.cells.includes(k)) return {ok:false,cells:[]};
+        }
+        cells.push(k);
+      }
+      return {ok:true,cells};
+    }
+
+    function updatePreviewFromEvent(e){
+      const DRAG = window.__PEZZALI_DRAG; if (!DRAG) return;
+      const {row,col} = eventToCell(e);
+      const r0 = row - DRAG.anchor.r;
+      const c0 = col - DRAG.anchor.c;
+      const ignore = (DRAG.src==='board') ? DRAG.L : null;
+      const probe = canPlaceShapeAt(DRAG.shape, r0, c0, ignore);
+      const set = new Set();
+      for (const [dr,dc] of DRAG.shape){
+        const rr=r0+dr, cc=c0+dc;
+        if (rr>=0 && rr<H && cc>=0 && cc<W) set.add(getIdx(rr,cc));
+      }
+      window.__PEZZALI_DRAG.preview = {set, bad: !probe.ok};
+      // re-render if renderBoard exists
+      if (typeof renderBoard === 'function') renderBoard();
+    }
+
+    function commitFromEvent(e){
+      const DRAG = window.__PEZZALI_DRAG; if (!DRAG) return;
+      const {row,col} = eventToCell(e);
+      const r0 = row - DRAG.anchor.r;
+      const c0 = col - DRAG.anchor.c;
+      const ignore = (DRAG.src==='board') ? DRAG.L : null;
+      const probe = canPlaceShapeAt(DRAG.shape, r0, c0, ignore);
+      if (!probe.ok){ window.__PEZZALI_DRAG=null; if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.'); if (typeof renderBoard==='function') renderBoard(); return; }
+      placed.set(DRAG.L, {cells:probe.cells, r0, c0, shape: DRAG.shape.map(x=>x.slice())});
+      window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); if (typeof setStatus==='function') setStatus('Pezzo posizionato.');
+    }
+
+    // Attach pointer handlers to palette tiles and board cells after each render
+    const __origRenderPalette = (typeof renderPalette==='function') ? renderPalette : null;
+    const __origRenderBoard   = (typeof renderBoard==='function') ? renderBoard : null;
+
+    if (__origRenderPalette){
+      window.renderPalette = function(){
+        __origRenderPalette();
+        // attach pointerdown to each tile
+        document.querySelectorAll('#palette .tile').forEach(tile => {
+          const L = tile.querySelector('div:last-child')?.textContent?.trim();
+          if (!L) return;
+          tile.addEventListener('pointerdown', (e)=>{
+            const shape = orient[L] || (orient[L] = normalize(PENTOMINOES[L]));
+            window.__PEZZALI_DRAG = { L, shape: shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
+            tile.setPointerCapture?.(e.pointerId);
+          });
+        });
+      }
+    }
+
+    if (__origRenderBoard){
+      window.renderBoard = function(colormap){
+        __origRenderBoard(colormap);
+        // attach pointer handlers to cells
+        const cells = boardEl.querySelectorAll('.cell');
+        cells.forEach((cell, i) => {
+          const r = Math.floor(i/W), c = i%W;
+          // start dragging from piece
+          cell.addEventListener('pointerdown', (e)=>{
+            if (!cell.classList.contains('piece')) return;
+            const hit = [...placed.entries()].find(([L,obj])=>obj.cells.includes(r*W+c));
+            if (!hit) return;
+            const [L, obj] = hit;
+            window.__PEZZALI_DRAG = { L, shape: (obj.shape || orient[L] || normalize(PENTOMINOES[L])).map(x=>x.slice()), src:'board', anchor:{r:r-obj.r0, c:c-obj.c0} };
+            cell.setPointerCapture?.(e.pointerId);
+          });
+        });
+      }
+      // global move/up
+      boardEl.addEventListener('pointermove', (e)=>{ if (window.__PEZZALI_DRAG) updatePreviewFromEvent(e); });
+      boardEl.addEventListener('pointerup',   (e)=>{ if (window.__PEZZALI_DRAG) commitFromEvent(e); });
+      window.addEventListener('pointerup',    (e)=>{ if (window.__PEZZALI_DRAG){ window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); }});
+    }
+  }catch(e){ console.error('Pointer DnD init error', e); }
+})();
