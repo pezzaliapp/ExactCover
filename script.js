@@ -1,4 +1,4 @@
-// script.js — ExactCover (Pentomino) con drag mobile + anteprima chiara
+// script.js — ExactCover (Pentomino) con drag mobile + anteprima chiara + flash al drop
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
 
@@ -11,11 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const holesBtn       = document.getElementById('holesBtn');
   const resetHolesBtn  = document.getElementById('resetHolesBtn');
   const checkBtn       = document.getElementById('checkBtn');
-  const findAllBtn     = document.getElementById('findAllBtn');  // se presente
-  const prevBtn        = document.getElementById('prevBtn');      // se presente
-  const nextBtn        = document.getElementById('nextBtn');      // se presente
-  const applyBtn       = document.getElementById('applyBtn');     // se presente
-  const shuffleBtn     = document.getElementById('shuffleBtn');   // se presente
+  const findAllBtn     = document.getElementById('findAllBtn');   // se presente
+  const prevBtn        = document.getElementById('prevBtn');       // se presente
+  const nextBtn        = document.getElementById('nextBtn');       // se presente
+  const applyBtn       = document.getElementById('applyBtn');      // se presente
+  const shuffleBtn     = document.getElementById('shuffleBtn');    // se presente
   const pieceSelect    = document.getElementById('pieceSelect');
   const rotBtn         = document.getElementById('rotBtn');
   const flipBtn        = document.getElementById('flipBtn');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearPlacedBtn = document.getElementById('clearPlacedBtn');
   const palette        = document.getElementById('palette');
   const statusEl       = document.getElementById('status');
-  const piecesPanel    = document.getElementById('piecesPanel');  // se presente
+  const piecesPanel    = document.getElementById('piecesPanel');   // se presente
   // stats opzionali
   const statSize       = document.getElementById('statSize');
   const statCells      = document.getElementById('statCells');
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const statCover      = document.getElementById('statCover');
   const statSolutions  = document.getElementById('statSolutions');
   const statCapped     = document.getElementById('statCapped');
-  const galleryEl      = document.getElementById('gallery');      // se presente
+  const galleryEl      = document.getElementById('gallery');       // se presente
 
   // ---------- Pentomini ----------
   const PENTOMINOES = {
@@ -58,10 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let orient = {};           // lettera -> shape normalizzato scelto in palette
   let placed = new Map();    // lettera -> {cells:[], r0,c0, shape}
-  let DRAG = null;           // stato drag mobile {L, shape, src, anchor:{r,c}, preview:{set,bad,r0,c0}}
+  let DRAG = null;           // stato drag {L, shape, src, anchor:{r,c}, preview:{set,bad,r0,c0}}
   let lastEndAt = 0;
 
-  // opzionale (se usi il solver altrove)
+  // opzionale (solver)
   let foundSolutions = [];
   let solIdx = -1, capped = false;
 
@@ -95,6 +95,20 @@ document.addEventListener('DOMContentLoaded', () => {
       cells.push(k);
     }
     return {ok:true, cells};
+  }
+
+  // Evidenzia brevemente le celle posate (flash verde)
+  function flashCells(cells){
+    if (!boardEl) return;
+    const cellNodes = boardEl.querySelectorAll('.cell');
+    const set = new Set(cells);
+    set.forEach(k=>{
+      const node = cellNodes[k];
+      if (node){
+        node.classList.add('flash');
+        setTimeout(()=> node.classList.remove('flash'), 220);
+      }
+    });
   }
 
   // ---------- Render ----------
@@ -139,24 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
 
-        // click breve: togli/aggiungi foro o rimuovi pezzo
-        cell.addEventListener('pointerdown', (e)=>{
-          if (Date.now()-lastEndAt<120) return;
-          if (editHoles){
-            if (holes.has(k)) holes.delete(k); else holes.add(k);
-            foundSolutions=[]; solIdx=-1; capped=false;
-            renderBoard();
-          } else {
-            for (const [L,obj] of placed){
-              if (obj.cells.includes(k)){
-                placed.delete(L);
-                renderBoard();
-                setStatus(`Rimosso ${L}.`);
-                break;
-              }
-            }
-          }
-        });
+        // click: gestisci fori solo quando in modalità "Modifica Fori"
+        cell.addEventListener('click', ()=>{
+          if (!editHoles) return;
+          if (holes.has(k)) holes.delete(k); else holes.add(k);
+          foundSolutions=[]; solIdx=-1; capped=false;
+          renderBoard();
+        }, { passive:true });
 
         // start drag da board (sposta pezzo già posato)
         cell.addEventListener('pointerdown', (e)=>{
@@ -316,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
     DRAG.preview = { set, bad: !probe.ok, r0, c0 };
     renderBoard();
   }
-  function commitFromEvent(e){
+  function commitFromEvent(){
     if (!DRAG || !DRAG.preview) return;
     const { r0, c0 } = DRAG.preview;
     const ignore = (DRAG.src==='board') ? DRAG.L : null;
@@ -328,24 +331,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const placedLetter = DRAG.L;
     const placedShape  = DRAG.shape.map(x=>x.slice());
-    placed.set(placedLetter, { cells:probe.cells, shape:placedShape, r0, c0 });
+    const justCells    = probe.cells.slice();
+    placed.set(placedLetter, { cells: justCells, shape: placedShape, r0, c0 });
     DRAG=null; renderBoard();
+    flashCells(justCells);
     setStatus(`Pezzo ${placedLetter} posizionato.`);
   }
 
   // global move/up (seguono dito/mouse ovunque)
   window.addEventListener('pointermove', (e)=>{ if (DRAG) updatePreviewFromEvent(e); }, {passive:true});
-  window.addEventListener('pointerup',   (e)=>{ if (DRAG) commitFromEvent(e); lastEndAt=Date.now(); }, {passive:true});
+  window.addEventListener('pointerup',   ()=>{ if (DRAG) commitFromEvent(); lastEndAt=Date.now(); }, {passive:true});
   window.addEventListener('touchmove',   (e)=>{
     if (!DRAG) return;
     e.preventDefault();
     const t=e.touches?.[0]; if (!t) return;
     updatePreviewFromPoint({x:t.clientX, y:t.clientY});
   }, {passive:false});
-  window.addEventListener('touchend', (e)=>{
-    if (!DRAG) return;
-    const t=e.changedTouches?.[0]; if (!t) return;
-    commitFromEvent({clientX:t.clientX, clientY:t.clientY});
+  window.addEventListener('touchend', ()=>{
+    if (DRAG) commitFromEvent();
     lastEndAt=Date.now();
   }, {passive:false});
   window.addEventListener('touchcancel', ()=>{ if (DRAG){ DRAG=null; renderBoard(); } }, {passive:false});
