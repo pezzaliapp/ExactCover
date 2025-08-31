@@ -27,7 +27,7 @@ html, body {
 /* ========= LAYOUT GENERALE =========
    Due righe: controlli (sticky) + campo di gioco (board + palette) */
 .app {
-  min-height: 100dvh;                 /* viewport dinamica: iOS 16+ / modern */
+  min-height: 100dvh;                 /* viewport dinamica (modern / iOS 16+) */
   min-height: -webkit-fill-available; /* fallback iOS */
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -60,7 +60,7 @@ html, body {
   grid-template-rows: minmax(0, 1fr) auto; /* board cresce, palette auto */
   gap: .75rem;
   padding: .5rem 1rem 0;
-  overscroll-behavior: contain;   /* evita rimbalzi fastidiosi su iOS */
+  overscroll-behavior: contain;   /* riduce rimbalzi su iOS */
 }
 
 /* Board centrata che si SCALA allo spazio disponibile */
@@ -193,7 +193,49 @@ button.ghost:hover{ background:#f1f5f9; border-color:#2563eb; }
 }
 #palette .tile, .cell{ touch-action:none; -webkit-user-drag:none; }
 
-/* ========= RESPONSIVE ========= */
+/* ========= iPHONE PORTRAIT (più spazio alla palette) ========= */
+@media (max-width: 768px) and (orientation: portrait){
+  .palette-bar{
+    max-height: 36vh; /* era 28vh */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+  .palette{
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
+/* ========= iPHONE LANDSCAPE (palette multi-riga con scroll verticale) ========= */
+@media (max-height: 480px) and (orientation: landscape){
+  .controls.panel{ top: 40px; }  /* più compatto */
+
+  .palette-bar{
+    position: static;        /* toglie sticky: evita “sparizioni” */
+    max-height: none;
+    padding-bottom: .75rem;
+    border-top: 1px solid #1a2a4d;
+  }
+
+  .palette{
+    display: grid;
+    grid-auto-flow: row;                                 /* non a colonne */
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    grid-auto-rows: auto;
+    gap: .5rem;
+    max-height: 46vh;                                    /* spazio respirabile */
+    overflow-y: auto;                                    /* scroll verticale */
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ========= MICRO-TWEAK SCHERMI STRETTI ========= */
+@media (max-width: 380px) and (orientation: portrait){
+  .board-wrap{ padding: .15rem 0 .35rem; }
+  .board{ --gap: 3px; } /* celle più vicine = board più grande */
+}
+
+/* ========= RESPONSIVE GENERICO ========= */
 @media (min-width: 1000px){
   .palette-bar{ max-height: 24vh; }
 }
