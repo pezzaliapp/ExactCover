@@ -1,82 +1,169 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pentomino Exact Cover</title>
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" href="icons/favicon.png" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1220" />
+<title>Pentomino Exact Cover — Smoke Test</title>
+
+<style>
+  /* ===== RESET & BASE ===== */
+  :root{ color-scheme:dark; }
+  *{ box-sizing:border-box }
+  html,body{
+    margin:0; background:#0b1220; color:#e7e7ef;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  }
+
+  /* ===== APPBAR ===== */
+  .appbar{ position:sticky; top:0; z-index:20; background:#0b1220; border-bottom:1px solid #122142 }
+  .appbar .brand{ padding:.75rem 1rem }
+  .appbar h1{ margin:0; font-size:clamp(18px,2.2vw,28px) }
+
+  /* ===== CONTROLLI (solo demo) ===== */
+  .controls{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; padding:.7rem 1rem; border-bottom:1px solid #122142 }
+  .btn{ font-weight:700; padding:10px 14px; border-radius:8px; border:1px solid #3b82f6; background:#fff; color:#0f172a }
+
+  /* ===== PLAYFIELD ===== */
+  .playfield{ display:flex; flex-direction:column; gap:.75rem; padding:.75rem 1rem }
+  .board-wrap{ display:flex; justify-content:center; align-items:center }
+
+  /* Board proporzionata: si adatta alla larghezza, resta leggibile su mobile
+     Puoi alzare o abbassare max-width e max-height per gusti diversi */
+  .board{
+    --w:10; --h:6;
+    display:grid; grid-template-columns:repeat(var(--w),1fr);
+    gap:4px;
+    width:100%;
+    max-width:900px;
+    aspect-ratio: calc(var(--w) / var(--h));
+    max-height:60vh;               /* non occupa tutto lo schermo su mobile */
+    background:#0f1a33; padding:4px; border-radius:12px; border:1px solid #1a2a4d;
+  }
+  .cell{ background:#0e172b; border-radius:4px; position:relative }
+  .cell.dark{ background:#0c1425 }
+
+  /* preview demo (facoltativo) */
+  .cell.preview::after{ content:""; position:absolute; inset:0; background:rgba(34,197,94,.30); outline:1px dashed rgba(34,197,94,.8); border-radius:3px }
+
+  /* ===== PALETTE — SEMPRE VISIBILE E SCORRIBILE ===== */
+  .manual{ border-top:1px solid #1a2a4d; background:#0b1220 }
+  .manual h3{ margin:.5rem 0; font-size:1rem }
+  .palette{
+    display:flex; gap:.6rem; overflow-x:auto; overflow-y:hidden;
+    padding:.5rem 0 calc(1rem + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; touch-action:pan-x;
+  }
+  .palette::-webkit-scrollbar{ display:none }
+  .tile{ flex:0 0 86px; background:#0f1a33; border:1px solid #1a2a4d; border-radius:10px; padding:8px; display:grid; gap:6px; scroll-snap-align:start }
+  .mini{ --sq:14px; display:grid; grid-template-columns:repeat(5,var(--sq)); grid-auto-rows:var(--sq); gap:2px; justify-content:center }
+  .mini .c{ width:var(--sq); height:var(--sq); background:#0e172b; border-radius:3px }
+  .mini .on{ background:#1e90ff }
+  .label{ text-align:center; font-weight:700 }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width:768px){
+    .board{ max-width:100%; max-height:55vh }   /* lascia più spazio alla palette su iPhone */
+    .tile{ flex:0 0 76px }
+    .mini{ --sq:12px }
+  }
+</style>
 </head>
+
 <body>
   <header class="appbar">
-    <div class="brand">
-      <h1>Pentomino Exact Cover</h1>
-    </div>
+    <div class="brand"><h1>Pentomino Exact Cover</h1></div>
   </header>
 
-  <!-- App a due righe: controlli (sticky) + campo di gioco -->
-  <main class="app">
+  <!-- Controlli di comodo per test (non toccano il solver) -->
+  <div class="controls">
+    <button class="btn" id="smoke6x10">Preset 6×10</button>
+    <button class="btn" id="smoke5x12">Preset 5×12</button>
+  </div>
 
-    <!-- ===== CONTROLLI STICKY IN ALTO ===== -->
-    <section class="controls panel">
-      <div class="controls-row">
-        <label for="preset">Preset:</label>
-        <select id="preset">
-          <option value="6x10" selected>6 × 10</option>
-          <option value="5x12">5 × 12</option>
-          <option value="4x15">4 × 15</option>
-          <option value="3x20">3 × 20</option>
-          <option value="8x8h">8 × 8 con fori</option>
-          <option value="custom">Custom…</option>
-        </select>
+  <main class="playfield">
+    <div class="board-wrap">
+      <div id="board" class="board" aria-label="Board"></div>
+    </div>
 
-        <input id="w" type="number" min="3" max="20" value="10" aria-label="Larghezza" />
-        <input id="h" type="number" min="3" max="20" value="6"  aria-label="Altezza"  />
-
-        <button id="newBtn">Nuova Griglia</button>
-        <button id="holesBtn" class="ghost">Modifica Fori</button>
-        <button id="resetHolesBtn" class="ghost">Svuota Fori</button>
-      </div>
-
-      <p id="status" class="status">Pronto.</p>
-    </section>
-
-    <!-- ===== CAMPO DI GIOCO: BOARD + PALETTE STICKY IN BASSO ===== -->
-    <section class="playfield">
-
-      <!-- Board centrata che si scala allo spazio disponibile -->
-      <div class="board-wrap">
-        <div id="board" class="board"></div>
-      </div>
-
-      <!-- Palette in basso: sticky + scroll orizzontale -->
-      <div class="palette-bar">
-        <div class="manual panel2">
-          <h3>Trascina i pezzi</h3>
-          <div class="controls">
-            <label for="pieceSelect">Pezzo:</label>
-            <select id="pieceSelect"></select>
-            <button id="rotBtn" class="ghost">Ruota ↻</button>
-            <button id="flipBtn" class="ghost">Specchia ⇋</button>
-            <button id="removeBtn" class="ghost">Rimuovi</button>
-            <button id="clearPlacedBtn" class="ghost">Svuota tutti</button>
-          </div>
-
-          <div id="palette" class="palette"></div>
-        </div>
-      </div>
-
+    <section class="manual" aria-label="Palette">
+      <h3>Trascina i pezzi (scroll orizzontale)</h3>
+      <div id="palette" class="palette"></div>
     </section>
   </main>
 
-  <script src="script.js" defer></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js');
+<script>
+/* ========= SMOKE TEST JS =========
+   - Popola la board con celle (scacchiera)
+   - Popola la palette con i 12 pentomini in mini 5x5
+   - Nessun solver, nessun drag: serve solo a validare layout e scroll
+*/
+(function(){
+  const board = document.getElementById('board');
+  const palette = document.getElementById('palette');
+
+  function drawBoard(w=10,h=6){
+    board.style.setProperty('--w', w);
+    board.style.setProperty('--h', h);
+    board.innerHTML = '';
+    for(let r=0;r<h;r++){
+      for(let c=0;c<w;c++){
+        const d=document.createElement('div');
+        d.className='cell'+(((r+c)&1)?' dark':'');
+        board.appendChild(d);
+      }
     }
-  </script>
+  }
+
+  // Pentomino shapes (coordinate in un riquadro 5x5 circa)
+  const PENTS = {
+    F:[[0,1],[1,0],[1,1],[1,2],[2,2]],
+    I:[[0,0],[1,0],[2,0],[3,0],[4,0]],
+    L:[[0,0],[1,0],[2,0],[3,0],[3,1]],
+    P:[[0,0],[0,1],[1,0],[1,1],[2,0]],
+    N:[[0,1],[1,1],[2,1],[3,1],[3,0]],
+    T:[[0,0],[0,1],[0,2],[1,1],[2,1]],
+    U:[[0,0],[0,2],[1,0],[1,1],[1,2]],
+    V:[[0,0],[1,0],[2,0],[2,1],[2,2]],
+    W:[[0,0],[1,0],[1,1],[2,1],[2,2]],
+    X:[[0,1],[1,0],[1,1],[1,2],[2,1]],
+    Y:[[0,0],[1,0],[2,0],[3,0],[2,1]],
+    Z:[[0,0],[0,1],[1,1],[2,1],[2,2]]
+  };
+
+  function mini(L, cells){
+    // normalizza per inserirlo in 5x5 in alto a sx
+    const minr=Math.min(...cells.map(p=>p[0])), minc=Math.min(...cells.map(p=>p[1]));
+    const norm=cells.map(([r,c])=>[r-minr,c-minc]);
+    const wrap=document.createElement('div'); wrap.className='tile';
+    const m=document.createElement('div'); m.className='mini';
+    for(let r=0;r<5;r++){
+      for(let c=0;c<5;c++){
+        const x=document.createElement('div');
+        x.className='c';
+        if(norm.some(([rr,cc])=>rr===r && cc===c)) x.classList.add('on');
+        m.appendChild(x);
+      }
+    }
+    const lab=document.createElement('div'); lab.className='label'; lab.textContent=L;
+    wrap.appendChild(m); wrap.appendChild(lab);
+    return wrap;
+  }
+
+  function drawPalette(){
+    palette.innerHTML='';
+    Object.keys(PENTS).forEach(L=>palette.appendChild(mini(L, PENTS[L])));
+  }
+
+  // Bottoni demo
+  document.getElementById('smoke6x10').addEventListener('click',()=>drawBoard(10,6));
+  document.getElementById('smoke5x12').addEventListener('click',()=>drawBoard(12,5));
+
+  // Avvio
+  drawBoard(10,6);
+  drawPalette();
+})();
+</script>
 </body>
 </html>
