@@ -290,7 +290,7 @@ button.ghost:hover {
   -webkit-user-drag: none;
 }
 
-/* ========= SMARTPHONE PORTRAIT — 12 PEZZI IN 2 RIGHE, TUTTO IN UNA SCHERMATA ========= */
+/* ========= SMARTPHONE PORTRAIT — 12 PEZZI IN 2 RIGHE (6×2) ========= */
 @media (max-width: 768px) and (orientation: portrait) {
   .app {
     height: calc(100dvh - var(--appbar-offset));
@@ -341,22 +341,28 @@ button.ghost:hover {
     gap: .4rem .35rem;
     overflow: hidden;
     padding: 0;
+    width: 100%;
   }
 
   .tile {
+    min-width: 0;
+    width: 100%; /* occupa tutta la colonna */
     padding: 5px;
     border-radius: 8px;
-    min-width: 0;
+    background: #0f1a33;
+    border: 1px solid #1a2a4d;
   }
 
   .tile .mini {
     --sq: 12px;
     gap: 1.5px;
+    justify-content: center;
   }
 
   .tile .mini .cell {
     width: var(--sq);
     height: var(--sq);
+    background: #0e172b;
     border-radius: 3px;
   }
 
