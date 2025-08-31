@@ -65,6 +65,35 @@ document.addEventListener('DOMContentLoaded', () => {
   let foundSolutions = [];
   let solIdx = -1, capped = false;
 
+  // ---------- Press & Hold (per drag da palette senza bloccare lo scroll) ----------
+  const HOLD_MS = 260;       // durata pressione per iniziare drag
+  const MOVE_TOL = 8;        // tolleranza in px per distinguere scroll da drag
+  let holdTimer = null;
+  let holdStart = null;
+  let holding = false;
+
+  function cancelHoldTimer(){
+    if (holdTimer){ clearTimeout(holdTimer); holdTimer = null; }
+    holding = false;
+    holdStart = null;
+    document.body.style.touchAction = ''; // riabilita lo scroll pagina
+  }
+
+  function beginDragFromPalette(L, eOrPt){
+    // blocca scroll pagina durante drag vero
+    document.body.style.touchAction = 'none';
+
+    const shape = orient[L] || (orient[L] = normalize(PENTOMINOES[L]));
+    DRAG = { L, shape: shape.map(x => x.slice()), src: 'palette', anchor: { r:0, c:0 } };
+
+    if (eOrPt && 'clientX' in eOrPt && boardEl && eOrPt.pointerId && boardEl.setPointerCapture){
+      boardEl.setPointerCapture(eOrPt.pointerId);
+      updatePreviewFromEvent(eOrPt);
+    } else if (eOrPt && 'x' in eOrPt) {
+      updatePreviewFromPoint(eOrPt);
+    }
+  }
+
   // ---------- Utilità ----------
   const idx = (r,c) => r * W + c;
   function setStatus(msg){ if (statusEl) statusEl.textContent = msg; }
@@ -251,27 +280,60 @@ document.addEventListener('DOMContentLoaded', () => {
           mini.appendChild(m);
         }
       }
-      const label=document.createElement('div'); label.textContent=L; label.style.textAlign='center'; label.style.fontWeight='700';
+      const label=document.createElement('div'); label.className='label'; label.textContent=L;
       tile.appendChild(mini); tile.appendChild(label);
+      tile.setAttribute('draggable','false');
       palette.appendChild(tile);
 
-      // start drag da palette
-      tile.setAttribute('draggable','false');
-      tile.addEventListener('pointerdown', (e)=>{
-        e.preventDefault();
-        const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
-        DRAG = { L, shape:shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
-        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
-        updatePreviewFromEvent(e);
-      }, {passive:false});
+      /* ====== NUOVO: press & hold per iniziare il drag ====== */
 
-      tile.addEventListener('touchstart', (e)=>{
-        const t=e.touches?.[0]; if (!t) return;
-        e.preventDefault();
-        const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
-        DRAG = { L, shape:shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
-        updatePreviewFromPoint({x:t.clientX, y:t.clientY});
-      }, {passive:false});
+      // Pointer events (moderno)
+      tile.addEventListener('pointerdown', (e) => {
+        // non preventDefault: permetti lo scroll orizzontale
+        holding = true;
+        holdStart = { x: e.clientX, y: e.clientY };
+        holdTimer = setTimeout(() => {
+          // se non si è mosso troppo, parte il drag
+          beginDragFromPalette(L, e);
+          cancelHoldTimer(); // chiude stato hold; drag ora è attivo
+        }, HOLD_MS);
+      }, { passive: true });
+
+      tile.addEventListener('pointermove', (e) => {
+        if (!holding || !holdStart) return;
+        const dx = Math.abs(e.clientX - holdStart.x);
+        const dy = Math.abs(e.clientY - holdStart.y);
+        if (dx > MOVE_TOL || dy > MOVE_TOL) {
+          cancelHoldTimer(); // utente sta scrollando → non iniziare drag
+        }
+      }, { passive: true });
+
+      tile.addEventListener('pointerup', cancelHoldTimer, { passive: true });
+      tile.addEventListener('pointercancel', cancelHoldTimer, { passive: true });
+
+      // Fallback touch (per browser senza Pointer Events)
+      tile.addEventListener('touchstart', (e) => {
+        const t = e.touches?.[0]; if (!t) return;
+        holding = true;
+        holdStart = { x: t.clientX, y: t.clientY };
+        holdTimer = setTimeout(() => {
+          beginDragFromPalette(L, { x: t.clientX, y: t.clientY }); // usa punto
+          cancelHoldTimer();
+        }, HOLD_MS);
+      }, { passive: true });
+
+      tile.addEventListener('touchmove', (e) => {
+        if (!holding || !holdStart) return;
+        const t = e.touches?.[0]; if (!t) return;
+        const dx = Math.abs(t.clientX - holdStart.x);
+        const dy = Math.abs(t.clientY - holdStart.y);
+        if (dx > MOVE_TOL || dy > MOVE_TOL) {
+          cancelHoldTimer();
+        }
+      }, { passive: true });
+
+      tile.addEventListener('touchend', cancelHoldTimer, { passive: true });
+      tile.addEventListener('touchcancel', cancelHoldTimer, { passive: true });
     }
   }
 
@@ -327,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!probe.ok){
       setStatus('⛔ Posizione non valida.');
       DRAG=null; renderBoard();
+      document.body.style.touchAction = ''; // ripristina scroll
       return;
     }
     const placedLetter = DRAG.L;
@@ -336,11 +399,12 @@ document.addEventListener('DOMContentLoaded', () => {
     DRAG=null; renderBoard();
     flashCells(justCells);
     setStatus(`Pezzo ${placedLetter} posizionato.`);
+    document.body.style.touchAction = ''; // ripristina scroll
   }
 
   // global move/up (seguono dito/mouse ovunque)
   window.addEventListener('pointermove', (e)=>{ if (DRAG) updatePreviewFromEvent(e); }, {passive:true});
-  window.addEventListener('pointerup',   ()=>{ if (DRAG) commitFromEvent(); lastEndAt=Date.now(); }, {passive:true});
+  window.addEventListener('pointerup',   ()=>{ if (DRAG) commitFromEvent(); lastEndAt=Date.now(); document.body.style.touchAction=''; }, {passive:true});
   window.addEventListener('touchmove',   (e)=>{
     if (!DRAG) return;
     e.preventDefault();
@@ -350,8 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('touchend', ()=>{
     if (DRAG) commitFromEvent();
     lastEndAt=Date.now();
+    document.body.style.touchAction = '';
   }, {passive:false});
-  window.addEventListener('touchcancel', ()=>{ if (DRAG){ DRAG=null; renderBoard(); } }, {passive:false});
+  window.addEventListener('touchcancel', ()=>{
+    if (DRAG){ DRAG=null; renderBoard(); }
+    document.body.style.touchAction = '';
+  }, {passive:false});
 
   // ---------- Pannello pezzi abilitati (facoltativo) ----------
   function renderPiecesPanel(){
