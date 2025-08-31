@@ -215,18 +215,22 @@
     DRAG_STATE.preview = {set, bad: !probe.ok};
     renderBoard();
   });
+  
   boardEl.addEventListener('drop',(e)=>{
     e.preventDefault();
-    const payload=e.dataTransfer.getData('text/plain');
-    if (!payload){ DRAG_STATE=null; renderBoard(); return; }
-    let data; try{ data=JSON.parse(payload);} catch{ DRAG_STATE=null; renderBoard(); return; }
-    const rect=boardEl.getBoundingClientRect();
-    const col=Math.min(W-1, Math.max(0, Math.floor((e.clientX-rect.left)/(rect.width/W))));
-    const row=Math.min(H-1, Math.max(0, Math.floor((e.clientY-rect.top)/(rect.height/H))));
-    let L, shape, r0=row, c0=col;
-    if (data.move){ L=data.L; shape=DRAG_STATE?.shape || placed.get(L).shape; r0 = row - (DRAG_STATE?.offR ?? data.offR); c0 = col - (DRAG_STATE?.offC ?? data.offC); }
-    else { L=data.L; shape=DRAG_STATE?.shape || (orient[L]||(orient[L]=normalize(PENTOMINOES[L]))); }
-    const probe = canPlaceShapeAt(shape, r0, c0, data.move?L:null);
+    // Support browsers that don't propagate dataTransfer text (e.g. Safari).
+    let data = null;
+    try { const payload = e.dataTransfer.getData('text/plain'); if (payload) data = JSON.parse(payload); } catch {}
+    const rect = boardEl.getBoundingClientRect();
+    const col = Math.min(W-1, Math.max(0, Math.floor((e.clientX-rect.left)/(rect.width/W))));
+    const row = Math.min(H-1, Math.max(0, Math.floor((e.clientY-rect.top)/(rect.height/H))));
+    let L, shape, r0=row, c0=col, moving=false, offR=0, offC=0;
+    if (data && data.move){ moving=true; L=data.L; offR=data.offR; offC=data.offC; }
+    if (DRAG_STATE){ L = DRAG_STATE.L || L; shape = DRAG_STATE.shape || shape; if (DRAG_STATE.moving) { moving = true; offR = DRAG_STATE.offR; offC = DRAG_STATE.offC; } }
+    if (!L){ DRAG_STATE=null; renderBoard(); return; }
+    if (!shape){ shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L])); }
+    if (moving){ r0 = row - offR; c0 = col - offC; }
+    const probe = canPlaceShapeAt(shape, r0, c0, moving?L:null);
     if (!probe.ok){ setStatus('⛔ Posizione non valida.'); DRAG_STATE=null; renderBoard(); return; }
     placed.set(L, {cells:probe.cells, shape, r0, c0});
     DRAG_STATE=null; renderBoard(); setStatus(`Pezzo ${L} posizionato.`);
@@ -377,8 +381,10 @@
     const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
     const sols=exactCoverSolve(1, pre); foundSolutions=sols; solIdx=sols.length?0:-1; capped=false;
     if(!sols.length){ renderBoard(); setStatus('Nessuna soluzione trovata.'); updateStats(); return; }
-    const cmap=new Map(); sols[0].forEach(pl=>pl.cells.forEach(k=>cmap.set(k, pl.piece))); renderBoard(cmap);
-    setStatus('Soluzione applicata (ordine di ricerca mescolato). Per vedere più varianti usa “Trova tutte” o “Mescola” + “Risolvi (1)”.');
+    placed.clear();
+    for (const pl of sols[0]){ placed.set(pl.piece, {cells:pl.cells.slice(), shape:null, r0:0, c0:0}); }
+    renderBoard();
+    setStatus('Soluzione applicata (ordine di ricerca mescolato). Per altre varianti usa “Trova tutte” oppure “Mescola” + “Risolvi (1)”.');
   });
   findAllBtn.addEventListener('click', ()=>{
     const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
