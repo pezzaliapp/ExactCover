@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ExactCover — Pentomino PWA</title>
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/x-icon" href="icons/favicon.ico" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="appbar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="ExactCover icon" />
+      <h1>ExactCover — Pentomino</h1>
+    </div>
+    <div class="actions">
+      <button id="installBtn" class="ghost" hidden>Installa</button>
+      <a class="ghost" id="githubLink" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="controls">
+        <label>Preset:</label>
+        <select id="preset">
+          <option value="6x10" selected>6 × 10</option>
+          <option value="5x12">5 × 12</option>
+          <option value="4x15">4 × 15</option>
+          <option value="3x20">3 × 20</option>
+          <option value="8x8h">8 × 8 con 4 fori</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <label for="w">Larghezza</label>
+        <input id="w" type="number" min="3" max="20" value="10" />
+        <label for="h">Altezza</label>
+        <input id="h" type="number" min="3" max="20" value="6" />
+        <button id="newBtn">Nuova Griglia</button>
+        <button id="holesBtn" class="ghost">Modifica Fori</button>
+        <button id="resetBtn" class="ghost">Svuota Fori</button>
+      </div>
+
+      <div class="controls">
+        <button id="checkBtn">Controlla</button>
+        <button id="hintBtn">Suggerisci</button>
+        <button id="solveOneBtn">Risolvi (1 soluzione)</button>
+        <button id="findAllBtn" class="ghost">Trova tutte (max 50)</button>
+      </div>
+
+      <div class="controls">
+        <button id="prevBtn" class="ghost" disabled>◀︎ Precedente</button>
+        <button id="nextBtn" class="ghost" disabled>Successiva ▶︎</button>
+        <button id="applyBtn" class="ghost" disabled>Applica questa</button>
+      </div>
+
+      <p id="status" class="status">Pronto.</p>
+      <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
+        <span class="legend-item"><span class="cell demo piece"></span> Pezzo</span>
+      </div>
+    </section>
+
+    <section class="side">
+      <div class="stats">
+        <p><strong>Dimensioni:</strong> <span id="statSize">6×10</span></p>
+        <p><strong>Celle valide:</strong> <span id="statCells">60</span></p>
+        <p><strong>Pezzi attivi:</strong> <span id="statPieces">12</span> / 12</p>
+        <p><strong>Soluzioni trovate:</strong> <span id="statSolutions">0</span> <small id="statCapped" class="muted"></small></p>
+      </div>
+
+      <details open>
+        <summary>Pezzi (Pentomino)</summary>
+        <div id="piecesPanel" class="pieces"></div>
+        <small class="muted">Area richiesta = 5 × (#pezzi attivi). Le celle valide devono coincidere.</small>
+      </details>
+
+      <details>
+        <summary>Info & Aiuto</summary>
+        <p>Obiettivo: coprire tutte le celle valide con ciascun pentomino una sola volta, senza sovrapposizioni. È un problema di <em>Exact Cover</em>.</p>
+        <ul>
+          <li><strong>Modifica Fori</strong>: clicca sul board per abilitare/disabilitare celle (fori).</li>
+          <li><strong>Controlla</strong>: verifica se l'area delle celle coincide con 5×pezzi attivi.</li>
+          <li><strong>Suggerisci / Risolvi</strong>: usa <em>Algorithm X</em> (backtracking) per trovare una soluzione.</li>
+          <li><strong>Trova tutte</strong>: trova fino a 50 soluzioni (attenzione ai tempi).</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>PWA & Licenza</summary>
+        <p>Installabile e offline grazie al <em>service worker</em> — MIT © 2025 Alessandro Pezzali — PezzaliAPP</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>💚 Open Source — PezzaliAPP.com</p>
+  </footer>
+
+  <script src="script.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js');
+      });
+    }
+  </script>
+</body>
+</html>
