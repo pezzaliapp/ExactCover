@@ -50,3 +50,14 @@ input[type="number"]{width:5rem}
 
 .footer{max-width:1200px;margin:1rem auto;padding:0 1rem;color:var(--muted)}
 @media (max-width: 960px){main{grid-template-columns:1fr}}
+
+/* v10: ghost preview */
+.cell.preview{position:relative}
+.cell.preview::after{
+  content:"";
+  position:absolute; inset:0;
+  background:rgba(255,255,255,.14);
+}
+.cell.preview.bad::after{
+  background:rgba(239,68,68,.35); /* red-ish when invalid */
+}

@@ -66,6 +66,8 @@
   let solIdx = -1, capped = false;
 
   // --- Utils ---
+  let DRAG_STATE = null; // {L, shape, moving, offR, offC}
+
   const idx = (r,c)=> r*W + c;
   const rc = (k)=> [Math.floor(k/W), k%W];
   function setStatus(msg){ statusEl.textContent = msg; }
@@ -91,6 +93,23 @@
     }
     return forms;
   }
+  
+  function canPlaceShapeAt(shape, r0, c0, ignoreLetter=null){
+    const cells = [];
+    for (const [dr,dc] of shape){
+      const rr=r0+dr, cc=c0+dc;
+      if (rr<0||rr>=H||cc<0||cc>=W) return {ok:false, cells:[]};
+      const k = idx(rr,cc);
+      if (holes.has(k)) return {ok:false, cells:[]};
+      for (const [L2, obj2] of placed){
+        if (ignoreLetter && L2===ignoreLetter) continue;
+        if (obj2.cells.includes(k)) return {ok:false, cells:[]};
+      }
+      cells.push(k);
+    }
+    return {ok:true, cells};
+  }
+
   function pieceColor(letter){
     const seed = letter.charCodeAt(0);
     const h = (seed*37) % 360;
@@ -111,6 +130,15 @@
         if (colormap && colormap.has(k)){
           cell.classList.add('piece');
           cell.style.background = pieceColor(colormap.get(k));
+        }
+        // ghost preview overlay
+        if (DRAG_STATE && DRAG_STATE.preview){
+          const set = DRAG_STATE.preview.set;
+          const bad = DRAG_STATE.preview.bad;
+          if (set.has(k)){
+            cell.classList.add('preview');
+            if (bad) cell.classList.add('bad');
+          }
         }
         // Click to toggle hole or remove piece
         cell.addEventListener('click', ()=>{
@@ -135,6 +163,7 @@
             if (obj.cells.includes(k)){
               const [r0, c0] = [obj.r0, obj.c0];
               const [rClick, cClick] = [r, c];
+              DRAG_STATE = {L, shape: JSON.parse(JSON.stringify(obj.shape|| (orient[L]||normalize(PENTOMINOES[L])))), moving:true, offR:rClick-r0, offC:cClick-c0};
               e.dataTransfer.setData('text/plain', JSON.stringify({move:true, L, offR:rClick-r0, offC:cClick-c0}));
               return;
             }
@@ -199,6 +228,8 @@
       tile.appendChild(label);
 
       tile.addEventListener('dragstart', (e)=>{
+        const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
+        DRAG_STATE = {L, shape: JSON.parse(JSON.stringify(shape)), moving:false, offR:0, offC:0};
         e.dataTransfer.setData('text/plain', JSON.stringify({L}));
       });
 
@@ -215,8 +246,8 @@
   boardEl.addEventListener('drop', (e)=>{
     e.preventDefault();
     const payload = e.dataTransfer.getData('text/plain');
-    if (!payload) return;
-    let data; try{ data = JSON.parse(payload); } catch{ return; }
+    if (!payload) { DRAG_STATE=null; renderBoard(currentColorMap()); return; }
+    let data; try{ data = JSON.parse(payload); } catch{ DRAG_STATE=null; renderBoard(currentColorMap()); return; }
     const rect = boardEl.getBoundingClientRect();
     const x = e.clientX, y = e.clientY;
     const col = Math.min(W-1, Math.max(0, Math.floor((x-rect.left)/ (rect.width/W))));
@@ -225,29 +256,18 @@
     let L, shape, r0=row, c0=col;
     if (data.move){
       L = data.L;
-      if (!placed.has(L)) return;
-      shape = placed.get(L).shape;
-      r0 = row - data.offR; c0 = col - data.offC;
+      if (!placed.has(L)) { DRAG_STATE=null; renderBoard(currentColorMap()); return; }
+      shape = DRAG_STATE?.shape || placed.get(L).shape;
+      r0 = row - (DRAG_STATE?.offR ?? data.offR); c0 = col - (DRAG_STATE?.offC ?? data.offC);
     } else {
       L = data.L;
-      shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
+      shape = DRAG_STATE?.shape || (orient[L] || (orient[L]=normalize(PENTOMINOES[L])));
     }
 
-    // try place
-    const cells = [];
-    for (const [dr,dc] of shape){
-      const rr=r0+dr, cc=c0+dc;
-      if (rr<0||rr>=H||cc<0||cc>=W){ setStatus('⛔ Fuori griglia.'); return; }
-      const k = idx(rr,cc);
-      if (holes.has(k)){ setStatus('⛔ Copre un foro.'); return; }
-      // overlap check (ignore previous cells of same L if moving)
-      for (const [L2, obj2] of placed){
-        if (L2===L) continue;
-        if (obj2.cells.includes(k)){ setStatus('⛔ Sovrapposizione.'); return; }
-      }
-      cells.push(k);
-    }
-    placed.set(L, {cells, shape, r0, c0});
+    const probe = canPlaceShapeAt(shape, r0, c0, data.move?L:null);
+    if (!probe.ok){ setStatus('⛔ Posizione non valida.'); DRAG_STATE=null; renderBoard(currentColorMap()); return; }
+    placed.set(L, {cells: probe.cells, shape, r0, c0});
+    DRAG_STATE=null;
     renderBoard(currentColorMap());
     setStatus(`Pezzo ${L} posizionato.`);
   });
@@ -539,3 +559,13 @@
   });
 
 })();
+
+  // v10: rotate/flip with keyboard during drag (R/F)
+  window.addEventListener('keydown', (e)=>{
+    if (!DRAG_STATE) return;
+    if (e.key==='r' || e.key==='R'){ DRAG_STATE.shape = rotate(DRAG_STATE.shape); e.preventDefault(); }
+    if (e.key==='f' || e.key==='F'){ DRAG_STATE.shape = reflect(DRAG_STATE.shape); e.preventDefault(); }
+  });
+
+  boardEl.addEventListener('dragleave', ()=>{ if (DRAG_STATE){ delete DRAG_STATE.preview; renderBoard(currentColorMap()); }});
+  boardEl.addEventListener('dragend', ()=>{ if (DRAG_STATE){ DRAG_STATE=null; renderBoard(currentColorMap()); }});
