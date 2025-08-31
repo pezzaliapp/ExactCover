@@ -8,16 +8,19 @@
    ========================================================= */
 
 /* ---------- Tema & reset ---------- */
-:root{
+:root {
   color-scheme: dark;
   --header-h: 56px;         /* altezza header appbar */
   --gap: 4px;               /* gap celle board */
-  --tile-w: 96px;           /* larghezza card palette (desktop) */
-  --tile-w-sm: 86px;        /* larghezza card palette (mobile) */
-  --mini-sq: 16px;          /* lato cella mini-anteprima */
-  --mini-sq-sm: 14px;       /* lato cella mini-anteprima (mobile) */
+  --tile-w: 88px;           /* larghezza card palette (desktop) */
+  --tile-w-sm: 80px;        /* larghezza card palette (mobile) */
+  --mini-sq: 14px;          /* lato cella mini-anteprima */
+  --mini-sq-sm: 12px;       /* lato cella mini-anteprima (mobile) */
 }
-*{ box-sizing:border-box; }
+
+* { 
+  box-sizing: border-box; 
+}
 html, body{
   margin:0;
   background:#0b1220;
