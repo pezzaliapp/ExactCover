@@ -13,15 +13,17 @@
 <body>
   <header class="appbar">
     <div class="brand">
-     
       <h1>Pentomino Exact Cover</h1>
     </div>
   </header>
 
-  <main>
-    <section class="panel">
-      <div class="controls">
-        <label>Preset:</label>
+  <!-- App a due righe: controlli (sticky) + campo di gioco -->
+  <main class="app">
+
+    <!-- ===== CONTROLLI STICKY IN ALTO ===== -->
+    <section class="controls panel">
+      <div class="controls-row">
+        <label for="preset">Preset:</label>
         <select id="preset">
           <option value="6x10" selected>6 × 10</option>
           <option value="5x12">5 × 12</option>
@@ -30,39 +32,43 @@
           <option value="8x8h">8 × 8 con fori</option>
           <option value="custom">Custom…</option>
         </select>
-        <input id="w" type="number" min="3" max="20" value="10" />
-        <input id="h" type="number" min="3" max="20" value="6" />
+
+        <input id="w" type="number" min="3" max="20" value="10" aria-label="Larghezza" />
+        <input id="h" type="number" min="3" max="20" value="6"  aria-label="Altezza"  />
+
         <button id="newBtn">Nuova Griglia</button>
         <button id="holesBtn" class="ghost">Modifica Fori</button>
         <button id="resetHolesBtn" class="ghost">Svuota Fori</button>
       </div>
 
       <p id="status" class="status">Pronto.</p>
+    </section>
 
+    <!-- ===== CAMPO DI GIOCO: BOARD + PALETTE STICKY IN BASSO ===== -->
+    <section class="playfield">
+
+      <!-- Board centrata che si scala allo spazio disponibile -->
       <div class="board-wrap">
         <div id="board" class="board"></div>
       </div>
 
-      <div class="manual panel2">
-        <h3>Trascina i pezzi</h3>
-        <div class="controls">
-          <label for="pieceSelect">Pezzo:</label>
-          <select id="pieceSelect"></select>
-          <button id="rotBtn" class="ghost">Ruota ↻</button>
-          <button id="flipBtn" class="ghost">Specchia ⇋</button>
-          <button id="removeBtn" class="ghost">Rimuovi</button>
-          <button id="clearPlacedBtn" class="ghost">Svuota tutti</button>
-        </div>
-        <div id="palette" class="palette"></div>
-      </div>
-    </section>
+      <!-- Palette in basso: sticky + scroll orizzontale -->
+      <div class="palette-bar">
+        <div class="manual panel2">
+          <h3>Trascina i pezzi</h3>
+          <div class="controls">
+            <label for="pieceSelect">Pezzo:</label>
+            <select id="pieceSelect"></select>
+            <button id="rotBtn" class="ghost">Ruota ↻</button>
+            <button id="flipBtn" class="ghost">Specchia ⇋</button>
+            <button id="removeBtn" class="ghost">Rimuovi</button>
+            <button id="clearPlacedBtn" class="ghost">Svuota tutti</button>
+          </div>
 
-    <section class="side">
-      <div class="stats">
-        <p><strong>Griglia:</strong> <span id="statSize">6×10</span></p>
-        <p><strong>Celle:</strong> <span id="statCells">60</span></p>
-        <p><strong>Coperte:</strong> <span id="statCover">0/60</span></p>
+          <div id="palette" class="palette"></div>
+        </div>
       </div>
+
     </section>
   </main>
 
