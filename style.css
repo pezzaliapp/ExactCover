@@ -1,170 +1,98 @@
 /* ========= RESET & TEMA ========= */
 :root{
   color-scheme: dark;
-  --appbar-offset: 56px; /* altezza effettiva header: regola se cambi l'appbar */
+  --appbar-offset: 56px;
 }
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  background: #0b1220;
-  color: #e7e7ef;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  height: -webkit-fill-available;      /* iOS fallback per 100dvh */
-}
-
-/* ========= APPBAR / TITOLI ========= */
-.appbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: #0b1220;
-  border-bottom: 1px solid #122142;
-}
-.appbar .brand { padding: .75rem 1rem; }
-.appbar h1 {
-  margin: 0;
-  font-size: clamp(18px, 2.2vw, 28px);
-  letter-spacing: .2px;
+*{ box-sizing:border-box; }
+html,body{
+  margin:0;
+  background:#0b1220;
+  color:#e7e7ef;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  min-height:100dvh;
+  min-height:-webkit-fill-available;
 }
 
-/* ========= LAYOUT GENERALE ========= */
-.app {
-  min-height: 100dvh;                 /* viewport dinamica (modern / iOS 16+) */
-  min-height: -webkit-fill-available; /* fallback iOS */
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+/* ========= APPBAR ========= */
+.appbar{
+  position:sticky; top:0; z-index:30;
+  background:#0b1220; border-bottom:1px solid #122142;
 }
-.controls.panel {
-  position: sticky;
-  top: var(--appbar-offset);
-  z-index: 25;
-  background: #0b1220;
-  padding: .75rem 1rem .5rem;
-  border-bottom: 1px solid #122142;
-}
-.controls-row,
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem .6rem;
-  align-items: center;
-}
-.status { margin: .4rem 0 0; opacity:.9; }
+.appbar .brand{ padding:.75rem 1rem; }
+.appbar h1{ margin:0; font-size:clamp(18px,2.2vw,28px); letter-spacing:.2px; }
 
-/* ========= CAMPO DI GIOCO ========= */
-.playfield {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto; /* (desktop default) board cresce, palette auto */
-  gap: .75rem;
-  padding: .5rem 1rem 0;
-  overscroll-behavior: contain;
+/* ========= LAYOUT ========= */
+.app{
+  min-height:100dvh; min-height:-webkit-fill-available;
+  display:grid; grid-template-rows:auto minmax(0,1fr);
 }
-.board-wrap {
-  min-height: 0;
-  display: grid;
-  place-items: center;
-  padding: .25rem 0 .5rem;
+.controls.panel{
+  position:sticky; top:var(--appbar-offset); z-index:25;
+  background:#0b1220; padding:.75rem 1rem .5rem; border-bottom:1px solid #122142;
 }
+.controls, .controls-row{ display:flex; flex-wrap:wrap; gap:.5rem .6rem; align-items:center; }
+.status{ margin:.4rem 0 0; opacity:.9; }
 
-/* === BOARD: celle quadrate calcolate con min() === */
+/* ========= PLAYFIELD ========= */
+.playfield{
+  min-height:0;
+  display:grid; grid-template-rows:minmax(0,1fr) auto;
+  gap:.75rem; padding:.5rem 1rem 0; overscroll-behavior:contain;
+}
+.board-wrap{ min-height:0; display:grid; place-items:center; padding:.25rem 0 .5rem; }
+
+/* === BOARD === */
 .board{
-  --w: 10;                 /* impostate da JS */
-  --h: 6;
-  --gap: 4px;
-
-  display: grid;
-  gap: var(--gap);
-
-  --cellW: calc( (100% - var(--gap) * (var(--w) - 1)) / var(--w) );
-  --cellH: calc( (100% - var(--gap) * (var(--h) - 1)) / var(--h) );
-  --cell:  min(var(--cellW), var(--cellH));
-
-  grid-template-columns: repeat(var(--w), var(--cell));
-  grid-auto-rows: var(--cell);
-
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  background: #0f1a33;
-  padding: 4px;
-  border-radius: 12px;
-  border: 1px solid #1a2a4d;
-
-  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+  --w:10; --h:6; --gap:4px;
+  display:grid; gap:var(--gap);
+  --cellW:calc((100% - var(--gap)*(var(--w) - 1))/var(--w));
+  --cellH:calc((100% - var(--gap)*(var(--h) - 1))/var(--h));
+  --cell:min(var(--cellW),var(--cellH));
+  grid-template-columns:repeat(var(--w),var(--cell));
+  grid-auto-rows:var(--cell);
+  width:100%; height:100%; max-height:100%;
+  background:#0f1a33; padding:4px; border-radius:12px; border:1px solid #1a2a4d;
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
 }
-
-.cell { position: relative; background:#0e172b; border-radius:4px; }
-.cell.dark { background:#0c1425; }
-.cell.hole { background:#1b0f0f; }
-.cell.piece{
-  outline: 2px solid rgba(255,255,255,.22);
-  border-radius: 4px;
-  filter: saturate(.9) brightness(1.02);
-}
-
-/* Ghost (anteprima) */
+.cell{ position:relative; background:#0e172b; border-radius:4px; }
+.cell.dark{ background:#0c1425; }
+.cell.hole{ background:#1b0f0f; }
+.cell.piece{ outline:2px solid rgba(255,255,255,.22); border-radius:4px; filter:saturate(.9) brightness(1.02); }
 .cell.preview::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:rgba(34,197,94,.30);
-  outline:1px dashed rgba(34,197,94,.8);
-  border-radius:3px;
+  content:""; position:absolute; inset:0;
+  background:rgba(34,197,94,.30); outline:1px dashed rgba(34,197,94,.8); border-radius:3px;
 }
-.cell.preview.bad::after{
-  background:rgba(239,68,68,.45);
-  outline:1px dashed rgba(239,68,68,.9);
-}
-
-/* Flash verde brevissimo quando il pezzo viene posato */
-.cell.flash::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:rgba(34,197,94,.35);
-  border-radius:3px;
-  animation:placeFlash .18s ease-out forwards;
-}
+.cell.preview.bad::after{ background:rgba(239,68,68,.45); outline:1px dashed rgba(239,68,68,.9); }
+.cell.flash::after{ content:""; position:absolute; inset:0; background:rgba(34,197,94,.35); border-radius:3px; animation:placeFlash .18s ease-out forwards; }
 @keyframes placeFlash{ 0%{opacity:1} 100%{opacity:0} }
 
-/* ========= PALETTE (DEFAULT DESKTOP/TABLET: STICKY ORIZZONTALE) ========= */
-.palette-bar{
-  position: sticky;
-  bottom: 0;
-  background: #0b1220;
-  padding: .4rem 0 calc(.7rem + env(safe-area-inset-bottom));
-  border-top: 1px solid #1a2a4d;
-  max-height: 28vh;
-  overflow: hidden;
-}
-.manual.panel2 { padding: 0 1rem; }
-.manual.panel2 h3 { margin: .25rem 0 .5rem; font-size: 1rem; opacity:.95; }
-.palette{
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(86px, 1fr);
-  gap: .5rem;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: .25rem 0 .25rem;
-  scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-}
-.palette > * { scroll-snap-align: start; }
+/* ========= PALETTE (markup: .manual.panel2 > .palette) ========= */
+.manual.panel2{ padding:0 1rem; }
+.manual.panel2 h3{ margin:.25rem 0 .5rem; font-size:1rem; opacity:.95; }
 
-/* Tile dei pezzi (mini 5x5) */
+/* Default (desktop/tablet): barra orizzontale scrollabile */
+.palette{
+  display:flex; gap:.5rem;
+  overflow-x:auto; overflow-y:hidden;
+  padding:.25rem 0 .25rem;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x proximity;
+  /* fade ai bordi = suggerisce lo scroll */
+  -webkit-mask-image:linear-gradient(to right, rgba(0,0,0,.05), #000 24px, #000 calc(100% - 24px), rgba(0,0,0,.05));
+          mask-image:linear-gradient(to right, rgba(0,0,0,.05), #000 24px, #000 calc(100% - 24px), rgba(0,0,0,.05));
+}
+.palette::-webkit-scrollbar{ display:none; }
+
 .tile{
+  flex:0 0 92px;                 /* larghezza fissa di ogni “card” */
   background:#0f1a33; border:1px solid #1a2a4d; border-radius:12px;
   padding:10px; display:grid; gap:6px;
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
+  scroll-snap-align:start;
 }
 .tile .mini{
   --sq:16px;
-  display:grid;
-  grid-template-columns:repeat(5,var(--sq));
-  grid-auto-rows:var(--sq);
+  display:grid; grid-template-columns:repeat(5,var(--sq)); grid-auto-rows:var(--sq);
   gap:3px; justify-content:center;
 }
 .tile .mini .cell{ width:var(--sq); height:var(--sq); background:#0e172b; border-radius:4px; }
@@ -172,95 +100,63 @@ html, body {
 .tile .ctrls{ display:flex; gap:6px; }
 .tile .ctrls button{ padding:6px 8px; border-radius:10px; background:#0b1326; border:1px solid #223055; color:#dbeafe; }
 
-/* ========= UI — PULSANTI / INPUT ========= */
-button, .controls select, .controls input { font-size:16px; line-height:1.15; }
-button { font-weight:700; letter-spacing:.2px; padding:10px 14px; border-radius:10px; }
-button.ghost{ background:#ffffff; color:#0f172a; border:1px solid #3b82f6; }
+/* ========= UI ========= */
+button, .controls select, .controls input{ font-size:16px; line-height:1.15; }
+button{ font-weight:700; letter-spacing:.2px; padding:10px 14px; border-radius:10px; }
+button.ghost{ background:#fff; color:#0f172a; border:1px solid #3b82f6; }
 button.ghost:hover{ background:#f1f5f9; border-color:#2563eb; }
-
-/* Blocca selezione/callout/drag nativo durante il drag */
-.board, #palette, #palette .tile, .cell, .controls, .panel{
-  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
-}
+.board, #palette, #palette .tile, .cell, .controls, .panel{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
 #palette .tile, .cell{ touch-action:none; -webkit-user-drag:none; }
 
-/* ========= SMARTPHONE PORTRAIT — STRIP ORIZZONTALE STICKY =========
-   - Board sempre visibile.
-   - Palette in basso sticky, a scorrimento ORIZZONTALE.
-   - Tiles compatti + hint ottico (fade ai bordi). */
-@media (max-width: 768px) and (orientation: portrait){
+/* ========= SMARTPHONE PORTRAIT =========
+   - Board visibile.
+   - Palette SOTTO in strip orizzontale scrollabile (flex). */
+@media (max-width:768px) and (orientation:portrait){
+  .playfield{ padding:.4rem .75rem 0; gap:.6rem; }
+  .board-wrap{ padding:.2rem 0 .3rem; }
+  .board{ --gap:3px; }
 
-  /* riduco leggermente gli spazi per dare più respiro alla board */
-  .playfield{
-    padding: .4rem .75rem 0;
-    gap: .6rem;
-  }
-  .board-wrap{ padding: .2rem 0 .3rem; }
-  .board{ --gap: 3px; }
-
-  .palette-bar{
-    position: sticky;
-    bottom: 0;
-    max-height: calc(22vh + env(safe-area-inset-bottom));  /* strip più bassa → board più visibile */
-    padding: .25rem 0 calc(.65rem + env(safe-area-inset-bottom));
-    overflow: hidden;
+  /* opzionale: tieni la palette appiccicata in basso */
+  .manual.panel2{
+    position:sticky; bottom:0; z-index:20;
+    background:#0b1220;
+    padding:0 1rem calc(.65rem + env(safe-area-inset-bottom));
+    border-top:1px solid #1a2a4d;
   }
 
-  /* strip orizzontale con snap; colonna minima un filo più piccola */
-  .palette{
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(84px, 1fr);
-    gap: .5rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-    overscroll-behavior-x: contain;
-    /* indizio visivo: fade ai bordi mentre si può scorrere */
-    mask-image: linear-gradient(to right, rgba(0,0,0,0.05), #000 24px, #000 calc(100% - 24px), rgba(0,0,0,0.05));
-  }
-
-  .tile{ padding: 8px; border-radius: 10px; }
-  .tile .mini{ --sq: 14px; gap: 2px; } /* miniature più compatte per far stare meglio i pezzi */
+  .palette{ gap:.5rem; }
+  .tile{ flex:0 0 88px; padding:8px; border-radius:10px; }
+  .tile .mini{ --sq:14px; gap:2px; }
 }
 
-/* ========= iPHONE LANDSCAPE (palette multi-riga con scroll verticale) ========= */
-@media (max-height: 520px) and (orientation: landscape){
-  .controls.panel{ top: calc(var(--appbar-offset) - 8px); }
-
-  .palette-bar{
-    position: static;
-    max-height: none;
-    padding-bottom: .75rem;
-    border-top: 1px solid #1a2a4d;
-  }
+/* ========= iPHONE LANDSCAPE =========
+   Palette multi-riga scrollabile in verticale. */
+@media (max-height:520px) and (orientation:landscape){
+  .controls.panel{ top:calc(var(--appbar-offset) - 8px); }
+  .manual.panel2{ position:static; padding-bottom:.75rem; border-top:1px solid #1a2a4d; }
   .palette{
-    display: grid;
-    grid-auto-flow: row;
-    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
-    gap: .5rem;
-    max-height: 46vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+    display:grid; grid-auto-flow:row;
+    grid-template-columns:repeat(auto-fill, minmax(86px,1fr));
+    gap:.5rem; max-height:46vh;
+    overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+    -webkit-mask-image:none; mask-image:none;
   }
+  .tile{ flex:0 0 auto; }
 }
 
-/* ========= MICRO-TWEAK SCHERMI STRETTI ========= */
-@media (max-width: 380px) and (orientation: portrait){
-  .board{ --gap: 2.5px; }
-  .tile .mini{ --sq: 13px; }
+/* ========= MICRO-TWEAK ========= */
+@media (max-width:380px) and (orientation:portrait){
+  .board{ --gap:2.5px; }
+  .tile .mini{ --sq:13px; }
 }
 
 /* ========= RESPONSIVE GENERICO ========= */
-@media (min-width: 1000px){
-  .palette-bar{ max-height: 24vh; }
+@media (min-width:1000px){ /* laptop grandi */
+  .manual.panel2{ position:static; }
 }
-@media (max-width: 960px){
-  .controls { row-gap:.4rem; column-gap:.4rem; }
-  .manual.panel2 { padding: 0 .75rem; }
+@media (max-width:960px){
+  .controls{ row-gap:.4rem; column-gap:.4rem; }
 }
-@media (max-width: 600px){
+@media (max-width:600px){
   .controls button, .controls select, .controls input{ font-size:17px; padding:11px 16px; }
 }
