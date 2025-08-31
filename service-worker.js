@@ -1,5 +1,4 @@
-const CACHE_NAME = 'pentomino-exactcover-v1';
-
+const CACHE_NAME = 'exactcover-v10';
 const ASSETS = [
   './',
   './index.html',
@@ -8,13 +7,12 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/favicon.png'
+  './icons/favicon.png',
+  './icons/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
