@@ -52,13 +52,14 @@ html, body{
 
   display:grid;
   grid-template-columns: repeat(var(--w), 1fr);
+  grid-auto-rows: 1fr;                 /* celle sempre proporzionate in verticale */
   gap: var(--gap);
 
-  /* proporzione fissa: celle sempre quadrate */
+  /* proporzione fissa: celle quadrate nel contenitore */
   width:100%;
-  max-width: 900px;                 /* aumenta/diminuisci se vuoi più grande su desktop */
+  max-width: 900px;                    /* aumenta/diminuisci per desktop */
   aspect-ratio: calc(var(--w) / var(--h));
-  max-height: 60vh;                 /* lascia spazio alla palette su mobile */
+  max-height: 60vh;                    /* lascia spazio alla palette su mobile */
 
   background:#0f1a33; padding:4px; border-radius:12px; border:1px solid #1a2a4d;
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
@@ -105,6 +106,13 @@ html, body{
 .tile .mini .cell{ width:var(--sq); height:var(--sq); background:#0e172b; border-radius:4px; }
 .tile .mini .cell.on{ background:#1e90ff; }
 .tile .label{ text-align:center; font-weight:700; opacity:.92; }
+
+/* controlli “↻/⇋” interni alla tile (il tuo JS li crea) */
+.tile .ctrls{ display:flex; gap:6px; justify-content:center; }
+.tile .ctrls button{
+  padding:6px 8px; border-radius:10px; background:#0b1326; border:1px solid #223055; color:#dbeafe;
+  font-size:14px; line-height:1;
+}
 
 /* ======= UI: pulsanti e input (no zoom iOS) ======= */
 button, .controls select, .controls input{ font-size:16px; line-height:1.15; }
