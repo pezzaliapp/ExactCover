@@ -91,7 +91,31 @@
     }
     return forms;
   }
-  function pieceColor(letter){
+  
+// Larger drag ghost (for mobile visibility)
+function createDragImage(shape, letter){
+  const SQ = 24; // pixel size of each square in the ghost
+  const pad = 3;
+  const maxr = Math.max(...shape.map(s=>s[0])), maxc = Math.max(...shape.map(s=>s[1]));
+  const w = (maxc+1)*SQ + pad*2;
+  const h = (maxr+1)*SQ + pad*2;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  // body
+  ctx.fillStyle = pieceColor ? pieceColor(letter) : '#1e90ff';
+  for (const [r,c] of shape){
+    ctx.fillRect(pad + c*SQ, pad + r*SQ, SQ, SQ);
+  }
+  // grid outline
+  ctx.strokeStyle = 'rgba(255,255,255,.6)';
+  ctx.lineWidth = 1;
+  for (const [r,c] of shape){
+    ctx.strokeRect(0.5 + pad + c*SQ, 0.5 + pad + r*SQ, SQ-1, SQ-1);
+  }
+  return {img: canvas, ox: w/2, oy: h/2};
+}
+function pieceColor(letter){
     const seed = letter.charCodeAt(0);
     const h = (seed*37) % 360;
     return `hsl(${h} 45% 26%)`;
@@ -130,19 +154,23 @@
         // Drag start from board (move existing piece)
         cell.draggable = true;
         cell.addEventListener('dragstart', (e)=>{
-          // determine owner
-          for (const [L, obj] of placed.entries()){
-            if (obj.cells.includes(k)){
-              const [r0, c0] = [obj.r0, obj.c0];
-              const [rClick, cClick] = [r, c];
-              e.dataTransfer.setData('text/plain', JSON.stringify({move:true, L, offR:rClick-r0, offC:cClick-c0}));
-              return;
-            }
-          }
-          // if no owner, cancel drag
-          e.preventDefault();
-        });
-        boardEl.appendChild(cell);
+      // determine owner
+      for (const [L, obj] of placed.entries()){
+        if (obj.cells.includes(k)){
+          const [r0, c0] = [obj.r0, obj.c0];
+          const [rClick, cClick] = [r, c];
+          e.dataTransfer.setData('text/plain', JSON.stringify({move:true, L, offR:rClick-r0, offC:cClick-c0}));
+          try{
+            const shape = obj.shape || (orient[L]||normalize(PENTOMINOES[L]));
+            const g = createDragImage(shape, L);
+            if (e.dataTransfer && e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(g.img, g.ox, g.oy);
+          } catch {}
+          return;
+        }
+      }
+      // if no owner, cancel drag
+      e.preventDefault();
+    });boardEl.appendChild(cell);
       }
     }
     prevBtn.disabled = nextBtn.disabled = applyBtn.disabled = (foundSolutions.length===0);
@@ -199,8 +227,13 @@
       tile.appendChild(label);
 
       tile.addEventListener('dragstart', (e)=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({L}));
-      });
+      e.dataTransfer.setData('text/plain', JSON.stringify({L}));
+      try {
+        const shape = orient[L] || (orient[L] = normalize(PENTOMINOES[L]));
+        const g = createDragImage(shape, L);
+        if (e.dataTransfer && e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(g.img, g.ox, g.oy);
+      } catch {}
+    });
 
       palette.appendChild(tile);
     }
