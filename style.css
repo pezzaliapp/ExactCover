@@ -86,4 +86,14 @@ input[type="number"]{width:5rem}
   user-select: none;
   -webkit-touch-callout: none;
 }
+/* --- iOS/touch DnD hardening --- */
+.board, #palette, #palette .tile, .cell, .controls, .panel {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 
+#palette .tile, .cell {
+  touch-action: none;           /* blocca gesture di scroll/zoom durante il drag */
+  -webkit-user-drag: none;      /* disattiva HTML5 DnD nativo su iOS */
+}
