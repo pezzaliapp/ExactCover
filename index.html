@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ExactCover — Pentomino (v12)</title>
+  <title>ExactCover — Pentomino PWA (v11)</title>
   <meta name="theme-color" content="#0f172a" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" href="icons/favicon.png" />
@@ -12,7 +12,14 @@
 </head>
 <body>
   <header class="appbar">
-    <div class="brand"><img src="icons/icon-192.png"/><h1>ExactCover — Pentomino</h1><span class="ver">v12</span></div>
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="ExactCover icon" />
+      <h1>ExactCover — Pentomino</h1>
+      <span class="ver">v11</span>
+    </div>
+    <div class="actions">
+      <button id="installBtn" class="ghost" hidden>Installa</button>
+    </div>
   </header>
 
   <main>
@@ -25,7 +32,12 @@
           <option value="4x15">4 × 15</option>
           <option value="3x20">3 × 20</option>
           <option value="8x8h">8 × 8 con 4 fori</option>
+          <option value="custom">Custom…</option>
         </select>
+        <label for="w">Larghezza</label>
+        <input id="w" type="number" min="3" max="20" value="10" />
+        <label for="h">Altezza</label>
+        <input id="h" type="number" min="3" max="20" value="6" />
         <button id="newBtn">Nuova Griglia</button>
         <button id="holesBtn" class="ghost">Modifica Fori</button>
         <button id="resetHolesBtn" class="ghost">Svuota Fori</button>
@@ -33,16 +45,21 @@
 
       <div class="controls">
         <button id="checkBtn">Controlla</button>
-        <button id="suggestBtn">Suggerisci</button>
-        <button id="solveBtn">Risolvi (1)</button>
+        <button id="findAllBtn" class="ghost">Trova tutte (max 50)</button>
+        <button id="prevBtn" class="ghost" disabled>◀︎</button>
+        <button id="nextBtn" class="ghost" disabled>▶︎</button>
+        <button id="applyBtn" class="ghost" disabled>Applica</button>
         <button id="shuffleBtn" class="ghost">Mescola</button>
       </div>
 
       <p id="status" class="status">Pronto.</p>
 
       <div class="board-wrap">
-        <div id="board" class="board" role="grid" aria-label="Griglia"></div>
+        <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
+        <div id="overlay" class="overlay" aria-hidden="true"></div>
       </div>
+
+      <div id="gallery" class="gallery"></div>
 
       <div class="legend">
         <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
@@ -52,9 +69,17 @@
       </div>
 
       <div class="manual panel2">
-        <h3>Drag & Drop</h3>
+        <h3>Modalità Manuale — Drag & Drop</h3>
+        <div class="controls">
+          <label for="pieceSelect">Pezzo:</label>
+          <select id="pieceSelect"></select>
+          <button id="rotBtn" class="ghost" title="Ruota">Ruota ↻</button>
+          <button id="flipBtn" class="ghost" title="Specchia">Specchia ⇋</button>
+          <button id="removeBtn" class="ghost">Rimuovi pezzo</button>
+          <button id="clearPlacedBtn" class="ghost">Svuota posizionati</button>
+        </div>
         <div id="palette" class="palette"></div>
-        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina un pezzo già posato per spostarlo. Premi <b>R</b> per ruotare e <b>F</b> per specchiare.</small>
+        <small class="muted">Trascina un pezzo sulla griglia per posizionarlo. Trascina dalla griglia per spostarlo. Premi <b>R</b> per ruotare e <b>F</b> per specchiare durante il drag.</small>
       </div>
     </section>
 
@@ -62,8 +87,9 @@
       <div class="stats">
         <p><strong>Dimensioni:</strong> <span id="statSize">6×10</span></p>
         <p><strong>Celle valide:</strong> <span id="statCells">60</span></p>
-        <p><strong>Pezzi attivi:</strong> <span id="statPieces">12</span></p>
+        <p><strong>Pezzi attivi:</strong> <span id="statPieces">12</span> / 12</p>
         <p><strong>Copertura:</strong> <span id="statCover">0/60</span></p>
+        <p><strong>Soluzioni:</strong> <span id="statSolutions">0</span> <small id="statCapped" class="muted"></small></p>
       </div>
 
       <details open>
@@ -74,15 +100,22 @@
 
       <details>
         <summary>Info</summary>
-        <p>DLX con posizionamenti manuali inclusi come vincoli. MIT © 2025</p>
+        <p>Obiettivo: coprire tutte le celle valide usando ciascun pentomino una sola volta, senza sovrapposizioni. Solver: <em>Dancing Links</em> (DLX).</p>
+        <p>MIT © 2025 Alessandro Pezzali — PezzaliAPP</p>
       </details>
     </section>
   </main>
 
+  <footer class="footer">
+    <p>💚 Open Source — PezzaliAPP.com</p>
+  </footer>
+
   <script src="script.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js');
+      });
     }
   </script>
 </body>
