@@ -539,3 +539,99 @@
   });
 
 })();
+// ===== Mobile tap-to-place (keeps desktop DnD) =====
+(function(){
+  try{
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0);
+    if (!isTouch) return; // desktop unchanged
+
+    let tapSelected = null;      // { L, shape }
+    let tapMoving = null;        // { L, anchor:{r,c} }
+
+    function canPlaceAt(shape, r0, c0, ignore=null){
+      const cells=[];
+      for (const [dr,dc] of shape){
+        const rr=r0+dr, cc=c0+dc;
+        if (rr<0||rr>=H||cc<0||cc>=W) return {ok:false,cells:[]};
+        const k = rr*W+cc;
+        if (holes.has(k)) return {ok:false,cells:[]};
+        for (const [L2,obj2] of placed){
+          if (ignore && L2===ignore) continue;
+          if (obj2.cells.includes(k)) return {ok:false,cells:[]};
+        }
+        cells.push(k);
+      }
+      return {ok:true,cells};
+    }
+
+    const _origRenderPalette = window.renderPalette;
+    if (_origRenderPalette){
+      window.renderPalette = function(){
+        _origRenderPalette();
+        document.querySelectorAll('#palette .tile').forEach(tile=>{
+          tile.setAttribute('draggable','false');
+          tile.addEventListener('touchstart', e=>{ e.preventDefault(); }, {passive:false});
+          tile.addEventListener('click', ()=>{
+            const lbl = tile.querySelector('div:last-child');
+            const L = lbl ? (lbl.textContent||'').trim() : '';
+            if (!L) return;
+            const shape = orient[L] || (orient[L]=normalize(PENTOMINOES[L]));
+            tapSelected = { L, shape: shape.map(x=>x.slice()) };
+            tapMoving = null;
+            if (window.pieceSelect) pieceSelect.value = L;
+            if (typeof setStatus==='function') setStatus(`Selezionato ${L}: tocca la griglia per posarlo.`);
+            document.querySelectorAll('#palette .tile').forEach(t=>t.classList.remove('active'));
+            tile.classList.add('active');
+          });
+        });
+      }
+    }
+
+    const _origRenderBoard = window.renderBoard;
+    if (_origRenderBoard){
+      window.renderBoard = function(colormap){
+        _origRenderBoard(colormap);
+        const cells = boardEl.querySelectorAll('.cell');
+        cells.forEach((cell, i)=>{
+          const r = Math.floor(i/W), c=i%W;
+          cell.setAttribute('draggable','false');
+          cell.addEventListener('touchstart', e=>{ e.preventDefault(); }, {passive:false});
+          cell.addEventListener('click', ()=>{
+            const k = i;
+            if (tapSelected){
+              const {L, shape} = tapSelected;
+              const probe = canPlaceAt(shape, r, c, null);
+              if (!probe.ok){ if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.'); return; }
+              placed.set(L, {cells:probe.cells, shape:shape.map(x=>x.slice()), r0:r, c0:c});
+              tapSelected = null;
+              document.querySelectorAll('#palette .tile').forEach(t=>t.classList.remove('active'));
+              if (typeof renderBoard==='function') renderBoard();
+              if (typeof setStatus==='function') setStatus(`Posato ${L}.`);
+              return;
+            }
+            for (const [L, obj] of placed){
+              if (obj.cells.includes(k)){
+                tapMoving = { L, anchor:{ r: r-obj.r0, c: c-obj.c0 } };
+                tapSelected = null;
+                document.querySelectorAll('#palette .tile').forEach(t=>t.classList.remove('active'));
+                if (typeof setStatus==='function') setStatus(`Sposta ${L}: tocca la nuova posizione.`);
+                return;
+              }
+            }
+            if (tapMoving){
+              const {L, anchor} = tapMoving;
+              const shape = (placed.get(L)?.shape) || (orient[L]||normalize(PENTOMINOES[L]));
+              const r0 = r - anchor.r, c0 = c - anchor.c;
+              const probe = canPlaceAt(shape, r0, c0, L);
+              if (!probe.ok){ if (typeof setStatus==='function') setStatus('⛔ Posizione non valida.'); return; }
+              placed.set(L, {cells:probe.cells, shape:shape.map(x=>x.slice()), r0, c0});
+              tapMoving = null;
+              if (typeof renderBoard==='function') renderBoard();
+              if (typeof setStatus==='function') setStatus(`Spostato ${L}.`);
+            }
+          });
+        });
+      }
+    }
+  }catch(e){ console.error('Tap-to-place init error', e); }
+})();
