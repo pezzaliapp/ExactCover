@@ -160,7 +160,7 @@
             src:'board', anchor:{r:rClick-r0, c:cClick-c0},
             from:{r0, c0, cells:obj.cells.slice()}
           };
-          if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+          boardEl.setPointerCapture(e.pointerId);
           updatePreviewFromEvent(e);
         });
 
@@ -211,7 +211,7 @@
       tile.addEventListener('pointerdown', (e)=>{
         const shape=orient[L]||(orient[L]=normalize(PENTOMINOES[L]));
         DRAG = { L, shape: shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
-        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+        boardEl.setPointerCapture(e.pointerId);
         updatePreviewFromEvent(e);
       });
 
@@ -323,13 +323,8 @@
     const pieceCols={}; let colIndex=validCells.length;
     for (const p of PIECE_ORDER){ if (enabledPieces.has(p)) pieceCols[p]=colIndex++; }
     const rows=[]; const placements=[];
-
-    const forced = new Map();
-    for (const [L,obj] of placed.entries()){ forced.set(L, new Set(obj.cells.slice().sort((a,b)=>a-b))); }
-
     for (const p of PIECE_ORDER){
       if (!enabledPieces.has(p)) continue;
-      const forcedCells = forced.get(p); // Set or undefined
       for (const shape of orientations(PENTOMINOES[p])){
         const maxr=Math.max(...shape.map(s=>s[0])); const maxc=Math.max(...shape.map(s=>s[1]));
         for (let r0=0; r0+maxr < H; r0++){
@@ -339,19 +334,9 @@
               const rr=r0+dr, cc=c0+dc; const k=idx(rr,cc);
               if (holes.has(k)){ ok=false; break; }
               const col=cellToCol.get(k); if (col===undefined){ ok=false; break; }
-              // avoid overlapping forced placements of other pieces
-              for (const [L2,obj2] of placed){ if (L2!==p && obj2.cells.includes(k)){ ok=false; break; } }
-              if (!ok) break;
               cols.push(col); cells.push(k);
             }
             if (!ok) continue;
-            // if this piece is forced, only keep exact same cell set
-            if (forcedCells){
-              const sorted = cells.slice().sort((a,b)=>a-b);
-              if (sorted.length!==forcedCells.size) continue;
-              let all=true; for (let i=0;i<sorted.length;i++){ if (!forcedCells.has(sorted[i])) {all=false; break;} }
-              if (!all) continue;
-            }
             cols.sort((a,b)=>a-b); cols.push(pieceCols[p]);
             rows.push(cols); placements.push({piece:p, cells});
           }
@@ -379,7 +364,10 @@
     function chooseColumn(){ let best=null, s=Infinity; for (let c=header.R; c!==header; c=c.R){ if (c.S<s){ s=c.S; best=c; if (s<=1) break; } } return best; }
     const solution=[]; const solutions=[];
 
-    /* preselect not needed, forced placements already embedded */
+    if (preselectRows && preselectRows.length){
+      for (const rIndex of preselectRows){
+        const rnode=rowNodes[rIndex];
+        for (let j=rnode; ; j=j.R){ cover(j.C); if (j.R===rnode) break; }
         solution.push(rIndex);
       }
     }
@@ -421,7 +409,8 @@
   suggestBtn.addEventListener('click', ()=>{
     const need=enabledPieces.size*5; const valid=W*H-holes.size;
     if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
-    const sols=exactCoverSolve(1); if(!sols.length){ setStatus('Nessuna soluzione compatibile.'); return; }
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(1, pre); if(!sols.length){ setStatus('Nessuna soluzione compatibile.'); return; }
     const placedSet=new Set(placed.keys());
     const next=sols[0].find(pl=>!placedSet.has(pl.piece));
     if(!next){ setStatus('Tutti i pezzi già posizionati.'); return; }
@@ -435,7 +424,8 @@
   solveOneBtn.addEventListener('click', ()=>{
     const need=enabledPieces.size*5; const valid=W*H-holes.size;
     if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
-    const sols=exactCoverSolve(1); foundSolutions=sols; solIdx=sols.length?0:-1; capped=false;
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(1, pre); foundSolutions=sols; solIdx=sols.length?0:-1; capped=false;
     if(!sols.length){ renderBoard(); setStatus('Nessuna soluzione trovata.'); updateStats(); return; }
     placed.clear();
     for (const pl of sols[0]){ placed.set(pl.piece, {cells:pl.cells.slice(), shape:null, r0:0, c0:0}); }
@@ -446,7 +436,8 @@
   findAllBtn.addEventListener('click', ()=>{
     const need=enabledPieces.size*5; const valid=W*H-holes.size;
     if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
-    const sols=exactCoverSolve(MAX_SOL); foundSolutions=sols; solIdx=sols.length?0:-1; capped=sols.length>=MAX_SOL;
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(MAX_SOL, pre); foundSolutions=sols; solIdx=sols.length?0:-1; capped=sols.length>=MAX_SOL;
     if(!sols.length){ renderBoard(); setStatus('Nessuna soluzione.'); updateStats(); return; }
     previewSolution(solIdx);
     setStatus(`Trovate ${sols.length} soluzioni${capped?' (limite)':''}. Anteprima 1/${sols.length}.`);
