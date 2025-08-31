@@ -86,7 +86,8 @@ html, body{
   display:flex; gap:.55rem;
   overflow-x:auto; overflow-y:hidden;
   padding:.35rem 0 calc(1rem + env(safe-area-inset-bottom));
-  -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; touch-action:pan-x;
+  -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
+  touch-action: pan-x;                 /* ← abilita lo scroll orizzontale su iOS */
   overscroll-behavior-x:contain;
 }
 .palette::-webkit-scrollbar{ display:none; }
@@ -96,8 +97,11 @@ html, body{
   flex:0 0 var(--tile-w);
   background:#0f1a33; border:1px solid #1a2a4d; border-radius:12px;
   padding:10px; display:grid; gap:6px;
-  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+  touch-action: auto;                 /* ← NO block: lascia scorrere la palette */
+  cursor: grab;
 }
+.tile:active{ cursor: grabbing; }
 .tile .mini{
   --sq:var(--mini-sz);
   display:grid; grid-template-columns:repeat(5,var(--sq)); grid-auto-rows:var(--sq);
@@ -107,7 +111,7 @@ html, body{
 .tile .mini .cell.on{ background:#1e90ff; }
 .tile .label{ text-align:center; font-weight:700; opacity:.92; }
 
-/* controlli “↻/⇋” interni alla tile (il tuo JS li crea) */
+/* controlli “↻/⇋” interni alla tile (creati dal tuo JS) */
 .tile .ctrls{ display:flex; gap:6px; justify-content:center; }
 .tile .ctrls button{
   padding:6px 8px; border-radius:10px; background:#0b1326; border:1px solid #223055; color:#dbeafe;
