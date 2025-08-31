@@ -49,6 +49,7 @@
         <button id="hintBtn">Suggerisci</button>
         <button id="solveOneBtn">Risolvi (1 soluzione)</button>
         <button id="findAllBtn" class="ghost">Trova tutte (max 50)</button>
+        <button id="stopBtn" class="ghost">Stop</button>
       </div>
 
       <div class="controls">
@@ -57,7 +58,7 @@
         <button id="applyBtn" class="ghost" disabled>Applica questa</button>
       </div>
 
-      <p id="status" class="status">Pronto.</p>
+      <p id="status" class="status">Pronto. <span id="prog" class="muted"></span></p>
       <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
       <div class="legend">
         <span class="legend-item"><span class="cell demo hole"></span> Foro</span>

@@ -50,6 +50,7 @@
   const solveOneBtn = document.getElementById('solveOneBtn');
   const findAllBtn = document.getElementById('findAllBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
+  const stopBtn = document.getElementById('stopBtn');
 
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
@@ -432,7 +433,7 @@
     if (!checkFeasible()) return;
     setStatus('Calcolo suggerimento…');
     setTimeout(()=>{
-      const sols = exactCoverSolve(1);
+      const sols = await exactCoverSolve(1, (steps, ms, done)=>{ progEl.textContent = steps?`nodi:${steps}`:''; if(done) progEl.textContent += ms?` • ${ms}ms`:''; });
       if (sols.length === 0){ setStatus('Nessuna soluzione trovata.'); return; }
       // place first placement only as hint: overlay partial (first piece)
       const firstPiece = sols[0][0];
@@ -443,9 +444,9 @@
 
   solveOneBtn.addEventListener('click', ()=>{
     if (!checkFeasible()) return;
-    setStatus('Ricerca in corso…');
+    setStatus('Ricerca in corso…'); progEl.textContent='';
     setTimeout(()=>{
-      const sols = exactCoverSolve(1);
+      const sols = await exactCoverSolve(1, (steps, ms, done)=>{ progEl.textContent = steps?`nodi:${steps}`:''; if(done) progEl.textContent += ms?` • ${ms}ms`:''; });
       solutions = sols;
       solIdx = sols.length ? 0 : -1;
       capped = false;
@@ -466,7 +467,7 @@
     setTimeout(()=>{
       // naive approach: repeatedly call solver with limit 1 won't enumerate unique solutions.
       // Instead, slightly modify exactCoverSolve to return up to MAX_SOL solutions by increasing limit.
-      const sols = exactCoverSolve(MAX_SOL);
+      const sols = await exactCoverSolve(MAX_SOL, (steps, ms, done)=>{ progEl.textContent = steps?`nodi:${steps}`:''; if(done) progEl.textContent += ms?` • ${ms}ms`:''; });
       solutions = sols;
       solIdx = sols.length ? 0 : -1;
       capped = sols.length >= MAX_SOL;
@@ -528,4 +529,10 @@
     seedRand(Math.floor(Math.random()*1e9));
     solutions=[]; solIdx=-1; capped=false;
     setStatus('Ordine di ricerca mescolato. Pronto a trovare soluzioni diverse.');
+  });
+
+
+  // Stop current search
+  stopBtn?.addEventListener('click', ()=>{
+    if (typeof requestStop === 'function') requestStop();
   });
