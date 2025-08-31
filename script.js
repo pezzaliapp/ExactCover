@@ -248,9 +248,9 @@
             cover.sort((a,b)=>a-b);
             const row = new Set(cover);
             row.add(pieceCols[p]);
-            rows.push(row);
+            rows.push(Array.from(row));
             placements.push({piece:p, cells: cover.map(ci => validCellList[ci])});
-          }
+            }
         }
       }
     }
