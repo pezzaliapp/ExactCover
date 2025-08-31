@@ -160,7 +160,7 @@
             src:'board', anchor:{r:rClick-r0, c:cClick-c0},
             from:{r0, c0, cells:obj.cells.slice()}
           };
-          if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+          boardEl.setPointerCapture(e.pointerId);
           updatePreviewFromEvent(e);
         });
 
@@ -211,7 +211,7 @@
       tile.addEventListener('pointerdown', (e)=>{
         const shape=orient[L]||(orient[L]=normalize(PENTOMINOES[L]));
         DRAG = { L, shape: shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
-        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+        boardEl.setPointerCapture(e.pointerId);
         updatePreviewFromEvent(e);
       });
 
@@ -404,14 +404,31 @@
   }
 
   // ----- Actions -----
-  shuffleBtn.addEventListener('click', ()=>{ seedRand(Math.floor(Math.random()*1e9)); setStatus('Ordine di ricerca mescolato. Usa “Trova tutte”.'); });
+  shuffleBtn.addEventListener('click', ()=>{ seedRand(Math.floor(Math.random()*1e9)); setStatus('Ordine di ricerca mescolato. Usa “Risolvi (1)” o “Trova tutte”.'); });
 
-  if (suggestBtn) { suggestBtn.addEventListener('click', ()=>{}); }
-renderBoard(); setStatus(`Suggerimento: posato ${next.piece}.`);
+  suggestBtn.addEventListener('click', ()=>{
+    const need=enabledPieces.size*5; const valid=W*H-holes.size;
+    if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(1, pre); if(!sols.length){ setStatus('Nessuna soluzione compatibile.'); return; }
+    const placedSet=new Set(placed.keys());
+    const next=sols[0].find(pl=>!placedSet.has(pl.piece));
+    if(!next){ setStatus('Tutti i pezzi già posizionati.'); return; }
+    const cells=next.cells.slice();
+    const rows=cells.map(k=>Math.floor(k/W)), cols=cells.map(k=>k%W);
+    const r0=Math.min(...rows), c0=Math.min(...cols);
+    placed.set(next.piece, {cells, shape:null, r0, c0});
+    renderBoard(); setStatus(`Suggerimento: posato ${next.piece}.`);
   });
 
-  if (solveOneBtn) { solveOneBtn.addEventListener('click', ()=>{}); }
-}
+  solveOneBtn.addEventListener('click', ()=>{
+    const need=enabledPieces.size*5; const valid=W*H-holes.size;
+    if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(1, pre); foundSolutions=sols; solIdx=sols.length?0:-1; capped=false;
+    if(!sols.length){ renderBoard(); setStatus('Nessuna soluzione trovata.'); updateStats(); return; }
+    placed.clear();
+    for (const pl of sols[0]){ placed.set(pl.piece, {cells:pl.cells.slice(), shape:null, r0:0, c0:0}); }
     renderBoard();
     setStatus('Soluzione applicata (ordine di ricerca mescolato).');
   });
