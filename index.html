@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ExactCover — Pentomino PWA</title>
+  <title>ExactCover — Pentomino PWA (v11)</title>
   <meta name="theme-color" content="#0f172a" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" href="icons/favicon.png" />
@@ -15,6 +15,7 @@
     <div class="brand">
       <img src="icons/icon-192.png" alt="ExactCover icon" />
       <h1>ExactCover — Pentomino</h1>
+      <span class="ver">v11</span>
     </div>
     <div class="actions">
       <button id="installBtn" class="ghost" hidden>Installa</button>
@@ -54,8 +55,14 @@
       </div>
 
       <p id="status" class="status">Pronto.</p>
-      <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
+
+      <div class="board-wrap">
+        <div id="board" class="board" role="grid" aria-label="Griglia Pentomino"></div>
+        <div id="overlay" class="overlay" aria-hidden="true"></div>
+      </div>
+
       <div id="gallery" class="gallery"></div>
+
       <div class="legend">
         <span class="legend-item"><span class="cell demo hole"></span> Foro</span>
         <span class="legend-item"><span class="cell demo piece"></span> Pezzo</span>
@@ -107,11 +114,11 @@
 
   <script src="script.js" defer></script>
   <script>
-    if ('serviceWorker' in navigator) {{
-      window.addEventListener('load', () => {{
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js');
-      }});
-    }}
+      });
+    }
   </script>
 </body>
 </html>

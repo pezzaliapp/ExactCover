@@ -10,6 +10,7 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,S
 .brand{display:flex;gap:.75rem;align-items:center}
 .brand img{width:32px;height:32px;border-radius:6px}
 .brand h1{font-size:1.15rem;margin:0;letter-spacing:.5px}
+.brand .ver{font-size:.8rem;color:var(--muted);margin-left:.5rem}
 .actions{display:flex;gap:.5rem}
 button,.ghost{background:var(--accent);border:none;border-radius:.6rem;color:#06210f;padding:.5rem .8rem;font-weight:700;cursor:pointer}
 button.ghost,.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -23,7 +24,9 @@ input[type="number"], select{background:#0b1220;color:var(--ink);border:1px soli
 input[type="number"]{width:5rem}
 .status{margin:.5rem 0 1rem;color:var(--muted)}
 
-.board{--w:10;--h:6;display:grid;grid-template-columns:repeat(var(--w),1fr);gap:2px;background:var(--line);border-radius:.5rem;overflow:hidden;border:1px solid var(--line);min-height:200px}
+.board-wrap{position:relative}
+.board{--w:10;--h:6;display:grid;grid-template-columns:repeat(var(--w),1fr);gap:2px;background:var(--line);border-radius:.5rem;overflow:hidden;border:1px solid var(--line);min-height:200px;touch-action:none}
+.overlay{position:absolute;inset:0;pointer-events:none}
 .cell{aspect-ratio:1/1;background:#0b1220;display:flex;align-items:center;justify-content:center;font-size:13px;user-select:none;position:relative}
 .cell.dark{background:#0b1628}
 .cell.hole{background:#1b0f0f}
@@ -46,7 +49,7 @@ input[type="number"]{width:5rem}
 .piece-toggle input{accent-color:#22c55e}
 
 .palette{display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem;margin:.5rem 0}
-.tile{background:#0b1220;border:1px solid var(--line);border-radius:.6rem;padding:.4rem;cursor:grab;user-select:none;position:relative}
+.tile{background:#0b1220;border:1px solid var(--line);border-radius:.6rem;padding:.4rem;user-select:none;position:relative;cursor:grab}
 .tile .mini{display:grid;grid-template-columns:repeat(5,12px);grid-auto-rows:12px;gap:2px;justify-content:center;margin:.25rem auto}
 .tile .cell{background:#1b273b}
 .tile .cell.on{background:#1e90ff}

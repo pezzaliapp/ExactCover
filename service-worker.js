@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'exactcover-v10.3-fixed';
+const CACHE_NAME = 'exactcover-v11';
 const ASSETS = [
   './',
   './index.html',
