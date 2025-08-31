@@ -1,6 +1,24 @@
 (() => {
   'use strict';
 
+  // --- Random utilities for diversity ---
+  let RNG_SEED = Math.floor(Math.random()*1e9);
+  function seedRand(seed){ RNG_SEED = seed>>>0; }
+  function rand(){ // xorshift32
+    let x = RNG_SEED || 123456789;
+    x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+    RNG_SEED = x>>>0;
+    return (RNG_SEED & 0xffffffff) / 0x100000000;
+  }
+  function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+
   // --- Pentomino definitions (canonical) ---
   // Coordinates normalized with (row,col), top-left origin, 5 cells each.
   const PENTOMINOES = {
@@ -31,6 +49,7 @@
   const hintBtn = document.getElementById('hintBtn');
   const solveOneBtn = document.getElementById('solveOneBtn');
   const findAllBtn = document.getElementById('findAllBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
 
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
@@ -53,7 +72,7 @@
   let editHoles = false;
 
   let enabledPieces = new Set(PIECE_ORDER); // start with all 12
-  const MAX_SOL = 50;
+  const MAX_SOL = 50; // raise if needed
 
   let solutions = []; // each solution is array of placement rows (objects)
   let solIdx = -1;
@@ -81,6 +100,7 @@
         cell.addEventListener('click', ()=>{
           if (!editHoles) return;
           if (holes.has(k)) holes.delete(k); else holes.add(k);
+          solutions=[]; solIdx=-1; capped=false;
           updateStats();
           renderBoard(colormap);
         });
@@ -137,6 +157,7 @@
       cb.checked = enabledPieces.has(p);
       cb.addEventListener('change', ()=>{
         if (cb.checked) enabledPieces.add(p); else enabledPieces.delete(p);
+        solutions=[]; solIdx=-1; capped=false;
         updateStats();
       });
       const span = document.createElement('span');
@@ -234,7 +255,12 @@
       }
     }
 
-    return {numCols, validCellList, pieceCols, rows, placements};
+    // randomize row traversal order for diversity
+    const order = Array.from({length: rows.length}, (_,i)=>i);
+    shuffle(order);
+    const rows2 = order.map(i=>rows[i]);
+    const placements2 = order.map(i=>placements[i]);
+    return {numCols, validCellList, pieceCols, rows: rows2, placements: placements2};
   }
 
   // --- Algorithm X (set-based) ---
@@ -298,7 +324,8 @@
       }
       const col = chooseCol();
       if (col === null) return;
-      const candidates = [...colToRows[col]].filter(r => activeRows.has(r));
+      let candidates = [...colToRows[col]].filter(r => activeRows.has(r));
+      shuffle(candidates);
       if (candidates.length === 0) return;
 
       // Save snapshot
@@ -495,3 +522,10 @@
   renderBoard();
   setStatus('Pronto.');
 })();
+
+  // Shuffle button: new random seed and clear cached solutions
+  shuffleBtn?.addEventListener('click', ()=>{
+    seedRand(Math.floor(Math.random()*1e9));
+    solutions=[]; solIdx=-1; capped=false;
+    setStatus('Ordine di ricerca mescolato. Pronto a trovare soluzioni diverse.');
+  });
