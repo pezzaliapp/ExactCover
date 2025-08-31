@@ -645,7 +645,8 @@ function pieceColor(letter){
         document.querySelectorAll('#palette .tile').forEach(tile => {
           const L = tile.querySelector('div:last-child')?.textContent?.trim();
           if (!L) return;
-          tile.addEventListener('pointerdown', (e)=>{
+          tile.setAttribute('draggable','false');
+          tile.addEventListener('pointerdown', (e)=>{ e.preventDefault();
             const shape = orient[L] || (orient[L] = normalize(PENTOMINOES[L]));
             window.__PEZZALI_DRAG = { L, shape: shape.map(x=>x.slice()), src:'palette', anchor:{r:0,c:0} };
             tile.setPointerCapture?.(e.pointerId);
@@ -662,7 +663,7 @@ function pieceColor(letter){
         cells.forEach((cell, i) => {
           const r = Math.floor(i/W), c = i%W;
           // start dragging from piece
-          cell.addEventListener('pointerdown', (e)=>{
+          cell.addEventListener('pointerdown', (e)=>{ e.preventDefault();
             if (!cell.classList.contains('piece')) return;
             const hit = [...placed.entries()].find(([L,obj])=>obj.cells.includes(r*W+c));
             if (!hit) return;
@@ -673,9 +674,19 @@ function pieceColor(letter){
         });
       }
       // global move/up
-      boardEl.addEventListener('pointermove', (e)=>{ if (window.__PEZZALI_DRAG) updatePreviewFromEvent(e); });
+      window.addEventListener('pointermove', (e)=>{ if (window.__PEZZALI_DRAG) updatePreviewFromEvent(e); }, {passive:true});
       boardEl.addEventListener('pointerup',   (e)=>{ if (window.__PEZZALI_DRAG) commitFromEvent(e); });
-      window.addEventListener('pointerup',    (e)=>{ if (window.__PEZZALI_DRAG){ window.__PEZZALI_DRAG=null; if (typeof renderBoard==='function') renderBoard(); }});
+      window.addEventListener('pointerup', (e)=>{
+        if (!window.__PEZZALI_DRAG) return;
+        const rect = boardEl.getBoundingClientRect();
+        if (e.clientX>=rect.left && e.clientX<=rect.right && e.clientY>=rect.top && e.clientY<=rect.bottom){
+          commitFromEvent(e);
+        } else {
+          window.__PEZZALI_DRAG=null;
+          if (typeof setStatus==='function') setStatus('Posizionamento annullato.');
+          if (typeof renderBoard==='function') renderBoard();
+        }
+      });
     }
   }catch(e){ console.error('Pointer DnD init error', e); }
 })();
