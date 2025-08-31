@@ -406,7 +406,12 @@
   // ----- Actions -----
   shuffleBtn.addEventListener('click', ()=>{ seedRand(Math.floor(Math.random()*1e9)); setStatus('Ordine di ricerca mescolato. Usa “Risolvi (1)” o “Trova tutte”.'); });
 
-  if (suggestBtn) suggestBtn.addEventListener('click', ()=>{ /* disabilitato */ });
+  suggestBtn.addEventListener('click', ()=>{
+    const need=enabledPieces.size*5; const valid=W*H-holes.size;
+    if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(1, pre); if(!sols.length){ setStatus('Nessuna soluzione compatibile.'); return; }
+    const placedSet=new Set(placed.keys());
     const next=sols[0].find(pl=>!placedSet.has(pl.piece));
     if(!next){ setStatus('Tutti i pezzi già posizionati.'); return; }
     const cells=next.cells.slice();
@@ -416,7 +421,13 @@
     renderBoard(); setStatus(`Suggerimento: posato ${next.piece}.`);
   });
 
-  if (solveOneBtn) solveOneBtn.addEventListener('click', ()=>{ /* disabilitato */ });
+  solveOneBtn.addEventListener('click', ()=>{
+    const need=enabledPieces.size*5; const valid=W*H-holes.size;
+    if (need!==valid){ setStatus(`⛔ Area incoerente: celle valide=${valid}, richieste=${need}.`); return; }
+    const pre=preselectRowsForPlaced(); if(pre===null){ setStatus('⛔ Posizionamenti manuali incoerenti.'); return; }
+    const sols=exactCoverSolve(1, pre); foundSolutions=sols; solIdx=sols.length?0:-1; capped=false;
+    if(!sols.length){ renderBoard(); setStatus('Nessuna soluzione trovata.'); updateStats(); return; }
+    placed.clear();
     for (const pl of sols[0]){ placed.set(pl.piece, {cells:pl.cells.slice(), shape:null, r0:0, c0:0}); }
     renderBoard();
     setStatus('Soluzione applicata (ordine di ricerca mescolato).');
