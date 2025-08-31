@@ -2,6 +2,13 @@
 (() => {
   'use strict';
 
+// Prevent text selection on long-press within board/palette (iOS)
+try {
+  boardEl?.addEventListener('selectstart', e => e.preventDefault());
+  document.getElementById('palette')?.addEventListener('selectstart', e => e.preventDefault());
+} catch {}
+
+
   // --- Shapes ---
   const PENTOMINOES = {
     F: [[0,1],[1,0],[1,1],[1,2],[2,2]],
@@ -689,4 +696,14 @@ function pieceColor(letter){
       });
     }
   }catch(e){ console.error('Pointer DnD init error', e); }
+})();
+
+// Mark dynamically created cells as not draggable (avoid native iOS DnD/text selection)
+(function(){
+  const o = window.renderBoard;
+  if (!o) return;
+  window.renderBoard = function(arg){
+    o(arg);
+    document.querySelectorAll('.cell').forEach(c => c.setAttribute('draggable','false'));
+  }
 })();
